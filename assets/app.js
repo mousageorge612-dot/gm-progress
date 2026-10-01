@@ -9,7 +9,7 @@
   var QUOTE_HTML = '<section class="quote"><p class="ar">«كل ما يُقاس يتحسّن»</p><p class="en" dir="ltr">"What gets measured gets improved."</p><span>بيتر دراكر · Peter Drucker</span></section>';
 
   /* ---------------- storage ---------------- */
-  function blank() { return { profile: null, days: {} }; }
+  function blank() { return { profile: null, days: {}, challenges: [] }; }
   var S = load();
   function load() {
     try { var d = JSON.parse(localStorage.getItem(KEY)); if (d && typeof d === 'object') return Object.assign(blank(), d); } catch (e) {}
@@ -80,6 +80,7 @@
     today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/><path d="m9 15 2 2 4-4"/></svg>',
     history: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
     report: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7M9 8h4"/></svg>',
+    target: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>',
     gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>'
   };
 
@@ -92,14 +93,14 @@
   function render() {
     var app = $('#app');
     if (!S.profile) { app.innerHTML = onboardView(); bindOnboard(); return; }
-    var titles = { today: 'تسجيل اليوم', history: 'السجل', report: 'التقارير' };
+    var titles = { today: 'تسجيل اليوم', challenges: 'التحديات', history: 'السجل', report: 'التقارير' };
     app.innerHTML =
       '<div class="shell">' +
       '<header class="topbar"><div class="t"><img src="assets/img/logo.png" alt=""><div>' + titles[tab] + '<small>GM Progress</small></div></div>' +
       '<button class="iconbtn" data-act="settings" aria-label="الإعدادات">' + I.gear + '</button></header>' +
       '<main class="page" id="page"></main>' +
-      '<nav class="tabbar">' + tabBtn('today', 'اليوم', I.today) + tabBtn('history', 'السجل', I.history) + tabBtn('report', 'التقارير', I.report) + '</nav></div>';
-    ({ today: todayView, history: historyView, report: reportView })[tab]($('#page'));
+      '<nav class="tabbar">' + tabBtn('today', 'اليوم', I.today) + tabBtn('challenges', 'التحديات', I.target) + tabBtn('history', 'السجل', I.history) + tabBtn('report', 'التقارير', I.report) + '</nav></div>';
+    ({ today: todayView, challenges: challengesView, history: historyView, report: reportView })[tab]($('#page'));
   }
   function tabBtn(k, t, ic) { return '<button class="tab' + (tab === k ? ' on' : '') + '" data-tab="' + k + '">' + ic + '<span>' + t + '</span></button>'; }
 
@@ -173,6 +174,7 @@
       '<div class="hi">أهلاً ' + esc(S.profile.name) + ' 👋</div>' +
       '<h2>' + (isToday ? 'كيف كان يومك؟' : 'تعديل يوم ' + fmtDay(editDate)) + '</h2></div></section>' +
       QUOTE_HTML +
+      chTodayCard(editDate) +
       (saved && isToday ? '<div class="install ok">✅ سجّلت يومك. فيك تعدّل وتبعت من جديد.</div>' : '') +
       '<form class="form" id="day">' +
       '<div class="card" style="padding:12px 16px">' + field('التاريخ', '<input name="date" type="date" value="' + editDate + '" max="' + todayStr() + '">') + '</div>' +
@@ -306,6 +308,7 @@
     L.push('😊 المزاج: ' + MOOD[d.mood]);
     if (d.weight) L.push('⚖️ الوزن: ' + d.weight + ' كغ');
     if (d.note) L.push('📝 ملاحظة: ' + d.note);
+    var cl = chReportLines(date); if (cl.length) { L.push(''); cl.forEach(function (x) { L.push(x); }); }
     L.push('');
     L.push('⭐ النتيجة: ' + score(d) + '%');
     return L.join('\n');
@@ -313,7 +316,7 @@
   function periodReport(n) {
     var ds = range(n), logged = ds.filter(function (d) { return S.days[d]; }), X = logged.map(function (d) { return S.days[d]; });
     var L = ['📊 ' + (n === 7 ? 'التقرير الأسبوعي' : 'التقرير الشهري') + ' – GM Progress', '👤 ' + S.profile.name, '📅 من ' + ds[0] + ' إلى ' + ds[ds.length - 1], ''];
-    if (!X.length) { L.push('ما في أيام مسجّلة بهالفترة.'); return L.join('\n'); }
+    if (!X.length) { L.push('ما في أيام مسجّلة بهالفترة.'); var cp0 = chPeriodLines(ds); if (cp0.length) { L.push(''); cp0.forEach(function (x) { L.push(x); }); } return L.join('\n'); }
     var cnt = function (fn) { return X.filter(fn).length; };
     var mean = function (fn) { return X.reduce(function (a, x) { return a + fn(x); }, 0) / X.length; };
     var dist = function (k, map) { return Object.keys(map).slice().reverse().map(function (v) { return map[v] + ' ' + cnt(function (x) { return x[k] === v; }); }).join(' · '); };
@@ -333,6 +336,7 @@
       L.push('⚖️ الوزن: ' + (w.length > 1 ? w0 + ' ← ' + w1 + ' كغ (' + signed(w1 - w0) + ')' : w1 + ' كغ'));
     }
     L.push('');
+    var cp = chPeriodLines(ds); if (cp.length) { cp.forEach(function (x) { L.push(x); }); L.push(''); }
     L.push('⭐ متوسط النتيجة: ' + Math.round(mean(score)) + '%');
     L.push('');
     if (n === 7) {
@@ -396,6 +400,189 @@
     inp.addEventListener('change', function () { cb(inp.files && inp.files[0]); inp.remove(); }); inp.click();
   }
 
+  /* ---------------- challenges (built on Atomic Habits, James Clear) ---------------- */
+  function daysBetween(a, b) { return Math.round((parseD(b) - parseD(a)) / 864e5); }
+  var CH_PRESETS = [
+    { icon: '🍬', title: 'بدون سكر مضاف', kind: 'quit', days: 30, identity: 'أنا شخص ما بياكل سكر', plan: 'لما بدّي شي حلو، باكل فاكهة أو تمر', tip: 'خلّي الإغراء غير مرئي: شيل الحلويات من البيت ومن مكتبك.' },
+    { icon: '🍞', title: 'بدون خبز أبيض', kind: 'quit', days: 30, identity: 'أنا شخص بيختار الكربوهيدرات الصح', plan: 'باستبدل الخبز الأبيض بخبز أسمر أو شوفان', tip: 'سهّل البديل: اشتري الخبز الأسمر وحطه بمكان الخبز الأبيض.' },
+    { icon: '🥤', title: 'بدون مشروبات غازية', kind: 'quit', days: 30, identity: 'أنا شخص بيشرب مي مش سكر', plan: 'لما بدّي شي بارد، بشرب مي باردة أو صودا بدون سكر', tip: 'خلّي قنينة مي باردة دايماً بالبراد بمكان الغازيات.' },
+    { icon: '🍔', title: 'بدون أكل سريع', kind: 'quit', days: 30, identity: 'أنا شخص بيحضّر أكله', plan: 'بحضّر وجباتي يوم الجمعة للأسبوع كله', tip: 'امسح تطبيقات التوصيل من موبايلك خلال التحدي.' },
+    { icon: '🌙', title: 'ما في أكل بعد 10 بالليل', kind: 'quit', days: 21, identity: 'أنا شخص مطبخه بيسكّر بكير', plan: 'بعد العشا بنضّف سناني، وهي إشارة إنه خلص الأكل', tip: 'تكديس العادات: بعد ما تنظف سنانك، المطبخ مسكّر.' },
+    { icon: '🍫', title: 'بدون حلويات وسناكات', kind: 'quit', days: 21, identity: 'أنا شخص بياكل لأنه جوعان مش لأنه زهقان', plan: 'لما بحس بالجوع بين الوجبات، باكل بروتين أو خضار', tip: 'جهّز سناك صحي جاهز بمكان واضح.' },
+    { icon: '👟', title: '10,000 خطوة يومياً', kind: 'build', days: 30, identity: 'أنا شخص نشيط بيتحرك كل يوم', plan: 'بعد الغدا بطلع أمشي 20 دقيقة', tip: 'قاعدة الدقيقتين: إذا ما في وقت، البس صباطك واطلع 5 دقايق بس.' },
+    { icon: '💧', title: '3 لتر مي يومياً', kind: 'build', days: 30, identity: 'أنا شخص بيهتم بجسمه', plan: 'بشرب كاسة مي بعد كل وجبة وكل ما بفوت عالحمام', tip: 'حط قنينة مي كبيرة على مكتبك قدام عينك.' },
+    { icon: '🥩', title: 'هدف البروتين كل يوم', kind: 'build', days: 30, identity: 'أنا رياضي بيغذّي عضلاته', plan: 'بكل وجبة بحط مصدر بروتين أول شي بالصحن', tip: 'ابدأ وجبتك بالبروتين، وبعدين كمّل الباقي.' },
+    { icon: '🏋️', title: 'ولا تمرين بيتفوّت', kind: 'build', days: 30, identity: 'أنا شخص ما بيفوّت تمرينه', plan: 'بتمرن بنفس الساعة كل يوم، وشنطتي جاهزة من الليل', tip: 'جهّز شنطة الجيم من الليلة يلي قبل وحطها جنب الباب.' },
+    { icon: '😴', title: '7 ساعات نوم', kind: 'build', days: 21, identity: 'أنا شخص بيحترم نومه', plan: 'الساعة 11 بحط الموبايل برا غرفة النوم', tip: 'خلّي غرفة النوم للنوم بس: الموبايل بيشحن برا.' },
+    { icon: '🥗', title: 'خضار بكل وجبة', kind: 'build', days: 21, identity: 'أنا شخص بياكل أكل حقيقي', plan: 'نص صحني دايماً خضار', tip: 'اغسل وقطّع الخضار مرة بالأسبوع لتكون جاهزة.' }
+  ];
+  var CH_DURATIONS = { 7: '7', 14: '14', 21: '21', 30: '30', 60: '60', 90: '90' };
+  var CH_ICONS = ['🎯', '🍬', '🍞', '🥤', '🍔', '🌙', '🍫', '👟', '💧', '🥩', '🏋️', '😴', '🥗', '🚭', '☕', '📵', '📖', '🧘'];
+  var HABIT_LAWS = [
+    ['👀', 'خلّيها واضحة', 'حدّد متى ووين: "رح أعمل كذا، الساعة كذا، بمكان كذا". وللعادة السيئة: خلّيها مخفية.'],
+    ['✨', 'خلّيها جذابة', 'اربطها بشي بتحبه، ومحيطك بيفرق: كون مع ناس العادة الجديدة طبيعية عندهم.'],
+    ['⚡', 'خلّيها سهلة', 'قاعدة الدقيقتين: ابدأ بنسخة صغيرة كتير. وللعادة السيئة: صعّبها وزيد العقبات.'],
+    ['🏆', 'خلّيها مُرضية', 'كل ✅ هون مكافأة فورية. لا تكسر السلسلة، وإذا كسرتها لا تفوّت مرتين.']
+  ];
+
+  function chList() { S.challenges = S.challenges || []; return S.challenges; }
+  function chEnd(c) { return addDays(c.start, c.days - 1); }
+  function chActive(c, date) { date = date || todayStr(); return !c.archived && date >= c.start && date <= chEnd(c); }
+  function chDayNum(c, date) { return daysBetween(c.start, date || todayStr()) + 1; }
+  function chStats(c) {
+    var today = todayStr(), last = today < chEnd(c) ? today : chEnd(c);
+    var elapsed = Math.max(0, daysBetween(c.start, last) + 1), wins = 0, best = 0, run = 0, d;
+    for (var i = 0; i < elapsed; i++) {
+      d = addDays(c.start, i);
+      if (c.log[d] === 1) { wins++; run++; best = Math.max(best, run); } else if (c.log[d] === 0 || d < today) run = 0;
+    }
+    var streakNow = 0; d = last;
+    if (c.log[d] !== 1 && c.log[d] !== 0) d = addDays(d, -1);
+    while (d >= c.start && c.log[d] === 1) { streakNow++; d = addDays(d, -1); }
+    var y = addDays(today, -1);
+    var missedYesterday = y >= c.start && c.log[y] !== 1 && today <= chEnd(c);
+    return { elapsed: elapsed, wins: wins, rate: elapsed ? Math.round(wins / elapsed * 100) : 0, best: best, streak: streakNow, done: today > chEnd(c), left: Math.max(0, daysBetween(today, chEnd(c))), missedYesterday: missedYesterday };
+  }
+  function chChain(c, small) {
+    var today = todayStr(), cells = '';
+    for (var i = 0; i < c.days; i++) {
+      var d = addDays(c.start, i), v = c.log[d];
+      var cls = v === 1 ? 'win' : v === 0 ? 'miss' : d < today ? 'skip' : d === today ? 'now' : '';
+      cells += '<i class="' + cls + '" title="' + fmtDate(d) + '"></i>';
+    }
+    return '<div class="chain' + (small ? ' sm' : '') + '" style="--n:' + Math.min(c.days, small ? 15 : 10) + '">' + cells + '</div>';
+  }
+
+  // Today card: quick yes/no per active challenge for the date being edited.
+  function chTodayCard(date) {
+    var act = chList().filter(function (c) { return chActive(c, date); });
+    if (!act.length) return '<button class="card chcta" data-tab="challenges"><span>🎯</span><div><b>ابدأ تحدّي جديد</b><small>شهر بدون سكر؟ بدون خبز أبيض؟ اختار تحدّيك وتابعه كل يوم.</small></div></button>';
+    return '<section class="card" id="chToday"><h3><span>🎯 تحدّياتك اليوم</span><span class="sub">التزمت؟</span></h3><div class="list">' +
+      act.map(function (c) {
+        var v = c.log[date];
+        return '<div class="chrow"><div class="chname"><span class="chic">' + c.icon + '</span><div><b>' + esc(c.title) + '</b><small>اليوم ' + num(chDayNum(c, date)) + ' من ' + num(c.days) + '</small></div></div>' +
+          '<div class="yn"><button type="button" class="' + (v === 1 ? 'on yes' : '') + '" data-act="chMark" data-id="' + c.id + '" data-d="' + date + '" data-v="1">✓</button>' +
+          '<button type="button" class="' + (v === 0 ? 'on no' : '') + '" data-act="chMark" data-id="' + c.id + '" data-d="' + date + '" data-v="0">✗</button></div></div>';
+      }).join('') + '</div></section>';
+  }
+  function chReportLines(date) {
+    var act = chList().filter(function (c) { return chActive(c, date); });
+    if (!act.length) return [];
+    return ['🎯 التحديات:'].concat(act.map(function (c) {
+      var v = c.log[date];
+      return '• ' + c.title + ' (يوم ' + chDayNum(c, date) + '/' + c.days + '): ' + (v === 1 ? '✅' : v === 0 ? '❌' : 'غير مسجّل');
+    }));
+  }
+  function chPeriodLines(ds) {
+    var from = ds[0], to = ds[ds.length - 1];
+    var cs = chList().filter(function (c) { return !c.archived && c.start <= to && chEnd(c) >= from; });
+    if (!cs.length) return [];
+    return ['🎯 التحديات:'].concat(cs.map(function (c) {
+      var inRange = ds.filter(function (d) { return d >= c.start && d <= chEnd(c) && d <= todayStr(); });
+      var wins = inRange.filter(function (d) { return c.log[d] === 1; }).length;
+      return '• ' + c.title + ': ' + wins + '/' + inRange.length + ' يوم' + (todayStr() > chEnd(c) ? ' (خلص التحدي)' : ' · يوم ' + Math.min(chDayNum(c), c.days) + '/' + c.days);
+    }));
+  }
+
+  function challengesView(page) {
+    var cs = chList().filter(function (c) { return !c.archived; });
+    var active = cs.filter(function (c) { return todayStr() <= chEnd(c); });
+    var done = cs.filter(function (c) { return todayStr() > chEnd(c); });
+    page.innerHTML =
+      '<section class="hero" style="min-height:190px"><div class="hero-bg outdoor"></div><div class="hero-c"><span class="pill">1% أحسن كل يوم</span><h2>التحديات</h2><div class="hi">العادات الصغيرة بتعمل نتائج كبيرة</div></div></section>' +
+      '<button class="btn" data-act="chNew">+ تحدّي جديد</button>' +
+      (active.length ? active.map(chCard).join('') : '<div class="card empty">ما عندك تحدّي شغّال. اختار تحدّي جاهز أو اعمل تحدّي خاص فيك.</div>') +
+      (done.length ? '<section class="card"><h3>تحديات خلصت 🏁</h3><div class="list">' + done.map(function (c) {
+        var s = chStats(c);
+        return '<button class="li dayrow" data-act="chOpen" data-id="' + c.id + '"><div><div class="v">' + c.icon + ' ' + esc(c.title) + '</div><div class="d">' + fmtDate(c.start) + ' · ' + num(c.days) + ' يوم</div></div><span class="score ' + scoreClass(s.rate) + '">' + num(s.rate + '%') + '</span></button>';
+      }).join('') + '</div></section>' : '') +
+      '<section class="card"><h3>📘 قوانين العادات الأربعة <span class="sub">من كتاب العادات الذرية</span></h3><div class="laws">' +
+      HABIT_LAWS.map(function (l) { return '<div class="law"><span>' + l[0] + '</span><div><b>' + l[1] + '</b><small>' + l[2] + '</small></div></div>'; }).join('') +
+      '</div><p class="muted" style="font-size:12px;margin:10px 0 0">مستوحاة من كتاب "العادات الذرية" لجيمس كلير.</p></section>';
+  }
+  function chCard(c) {
+    var s = chStats(c), today = todayStr(), started = today >= c.start, v = c.log[today];
+    return '<section class="card chcard">' +
+      '<button class="chhead" data-act="chOpen" data-id="' + c.id + '"><span class="chic big">' + c.icon + '</span><div><b>' + esc(c.title) + '</b><small>' +
+      (started ? 'اليوم ' + num(chDayNum(c)) + ' من ' + num(c.days) + ' · باقي ' + num(s.left) + ' يوم' : 'بيبلش ' + fmtDate(c.start)) + '</small></div><span class="streak">🔥 ' + num(s.streak) + '</span></button>' +
+      (s.missedYesterday && started ? '<div class="warn">⚠️ فوّتت مبارح. القاعدة الذهبية: <b>لا تفوّت مرتين</b>. اليوم بترجع عالطريق.</div>' : '') +
+      chChain(c) +
+      '<div class="chstats"><span>نسبة الالتزام <b>' + num(s.rate + '%') + '</b></span><span>أطول سلسلة <b>' + num(s.best) + '</b></span><span>أيام ناجحة <b>' + num(s.wins) + '</b></span></div>' +
+      (started ? '<div class="yn wide"><button type="button" class="' + (v === 1 ? 'on yes' : '') + '" data-act="chMark" data-id="' + c.id + '" data-d="' + today + '" data-v="1">✓ التزمت اليوم</button>' +
+        '<button type="button" class="' + (v === 0 ? 'on no' : '') + '" data-act="chMark" data-id="' + c.id + '" data-d="' + today + '" data-v="0">✗ ما التزمت</button></div>' : '') +
+      '</section>';
+  }
+
+  function chForm(p) {
+    p = p || {};
+    openSheet('<h2>' + (p.id ? 'تعديل التحدي' : 'تحدّي جديد') + '</h2><form class="form" id="chf">' +
+      '<div class="field"><label>الأيقونة</label><div class="chips icons" data-chips="icon">' + CH_ICONS.map(function (i) { return chip(i, i, i === (p.icon || '🎯')); }).join('') + '</div></div>' +
+      field('اسم التحدي', '<input name="title" required maxlength="40" value="' + esc(p.title || '') + '" placeholder="مثلاً: شهر بدون سكر">') +
+      '<div class="field"><label>نوع التحدي</label>' + chips('kind', { quit: 'بدّي أترك عادة', build: 'بدّي أبني عادة' }, p.kind || 'quit') + '</div>' +
+      '<div class="field"><label>المدة (أيام)</label>' + chips('days', CH_DURATIONS, p.days || 30) + '</div>' +
+      field('هويتك الجديدة', '<input name="identity" maxlength="80" value="' + esc(p.identity || '') + '" placeholder="أنا شخص ...">') +
+      '<p class="hint">💡 كل مرة بتلتزم، عم تعطي صوت للشخص يلي بدك تصيره. ركّز على مين بدك تكون، مش بس على النتيجة.</p>' +
+      field('خطتك: إمتى ووين وكيف؟', '<textarea name="plan" rows="2" maxlength="160" placeholder="لما ... رح ...">' + esc(p.plan || '') + '</textarea>') +
+      '<p class="hint">💡 الناس يلي بيكتبوا خطة واضحة (رح أعمل كذا، إمتى، ووين) احتمال التزامهم أعلى بكتير.</p>' +
+      field('تاريخ البداية', '<input name="start" type="date" required value="' + (p.start || todayStr()) + '">') +
+      '<button class="btn" type="submit">' + (p.id ? 'حفظ' : 'ابدأ التحدي 🚀') + '</button></form>', function (b) {
+      var f = $('#chf', b); bindChips(f);
+      f.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var data = { icon: chipVal(f, 'icon') || '🎯', title: f.title.value.trim(), kind: chipVal(f, 'kind') || 'quit', days: +(chipVal(f, 'days') || 30), identity: f.identity.value.trim(), plan: f.plan.value.trim(), start: f.start.value || todayStr(), tip: p.tip || '' };
+        if (!data.title) return;
+        if (p.id) { var c = chList().filter(function (x) { return x.id === p.id; })[0]; Object.assign(c, data); }
+        else chList().push(Object.assign({ id: Date.now().toString(36), log: {} }, data));
+        save(); closeSheet(); tab = 'challenges'; render(); toast(p.id ? 'تم الحفظ ✅' : 'بلّش التحدي! 💪');
+      });
+    });
+  }
+  function chById(id) { return chList().filter(function (x) { return x.id === id; })[0]; }
+
+  var CH_ACTIONS = {
+    chNew: function () {
+      openSheet('<h2>اختار تحدّي</h2><div class="presets">' +
+        CH_PRESETS.map(function (p, i) { return '<button class="preset" data-act="chPreset" data-i="' + i + '"><span>' + p.icon + '</span><b>' + p.title + '</b><small>' + p.days + ' يوم</small></button>'; }).join('') +
+        '<button class="preset custom" data-act="chCustom"><span>✍️</span><b>تحدّي خاص فيك</b><small>اكتبه بنفسك</small></button></div>');
+    },
+    chPreset: function (el) { var p = CH_PRESETS[+el.getAttribute('data-i')]; chForm({ icon: p.icon, title: p.title, kind: p.kind, days: p.days, identity: p.identity, plan: p.plan, tip: p.tip }); },
+    chCustom: function () { chForm({}); },
+    chMark: function (el) {
+      var c = chById(el.getAttribute('data-id')); if (!c) return;
+      var d = el.getAttribute('data-d'), v = +el.getAttribute('data-v');
+      if (c.log[d] === v) delete c.log[d]; else c.log[d] = v;
+      save();
+      var s = chStats(c);
+      if (c.log[d] === 1) toast(s.streak > 1 && s.streak % 7 === 0 ? '🔥 ' + s.streak + ' يوم ورا بعض! كمّل' : 'صوت جديد لهويتك الجديدة ✅');
+      else if (c.log[d] === 0) toast('مش مشكلة. المهم لا تفوّت مرتين 💪');
+      if (d === chEnd(c) && c.log[d] === 1) toast('🏁 خلّصت التحدي! نسبة التزامك ' + s.rate + '%');
+      if (tab === 'today' && $('#chToday')) { $('#chToday').outerHTML = chTodayCard(d); return; }
+      var y = window.scrollY; render(); window.scrollTo(0, y);
+    },
+    chOpen: function (el) {
+      var c = chById(el.getAttribute('data-id')); if (!c) return;
+      var s = chStats(c);
+      openSheet('<h2>' + c.icon + ' ' + esc(c.title) + '</h2>' +
+        '<div class="chstats big"><span>نسبة الالتزام<b>' + num(s.rate + '%') + '</b></span><span>السلسلة الحالية<b>' + num(s.streak) + '</b></span><span>أطول سلسلة<b>' + num(s.best) + '</b></span></div>' +
+        chChain(c) +
+        '<p class="muted" style="font-size:12px;margin:6px 0 12px">من ' + fmtDate(c.start) + ' إلى ' + fmtDate(chEnd(c)) + ' · 🟩 التزمت · 🟥 ما التزمت · ⬛ ما سجّلت</p>' +
+        (c.identity ? '<div class="idbox"><small>هويتك</small><b>' + esc(c.identity) + '</b></div>' : '') +
+        (c.plan ? '<div class="idbox"><small>خطتك</small><b>' + esc(c.plan) + '</b></div>' : '') +
+        (c.tip ? '<div class="idbox tip"><small>نصيحة</small><b>' + esc(c.tip) + '</b></div>' : '') +
+        '<div class="actions2"><button class="btn ghost" data-act="chEdit" data-id="' + c.id + '">تعديل</button><button class="btn ghost" data-act="chShare" data-id="' + c.id + '">ابعت للكوتش</button></div>' +
+        '<button class="btn danger" data-act="chDelete" data-id="' + c.id + '">حذف التحدي</button>');
+    },
+    chEdit: function (el) { var c = chById(el.getAttribute('data-id')); if (c) chForm(c); },
+    chShare: function (el) {
+      var c = chById(el.getAttribute('data-id')); if (!c) return; var s = chStats(c);
+      openExternal(waLink(['🎯 تحدّي: ' + c.title, '👤 ' + S.profile.name, '📅 اليوم ' + Math.min(chDayNum(c), c.days) + ' من ' + c.days, '✅ أيام ناجحة: ' + s.wins + '/' + s.elapsed + ' (' + s.rate + '%)', '🔥 السلسلة الحالية: ' + s.streak + ' · الأطول: ' + s.best, c.identity ? '🪪 ' + c.identity : ''].filter(Boolean).join('\n')));
+    },
+    chDelete: function (el) {
+      if (!confirm('حذف التحدي وكل سجله؟')) return;
+      var id = el.getAttribute('data-id'); S.challenges = chList().filter(function (x) { return x.id !== id; }); save(); closeSheet(); render();
+    }
+  };
+
   var ACTIONS = {
     editDay: function (el) { editDate = el.getAttribute('data-d'); tab = 'today'; render(); window.scrollTo(0, 0); },
     sendWa: function () {
@@ -419,7 +606,7 @@
         '<div class="actions2"><button class="btn ghost" type="button" data-act="export">نسخة احتياطية</button><button class="btn ghost" type="button" data-act="import">استرجاع نسخة</button></div>' +
         '<button class="btn ghost" type="button" data-act="contact">تواصل مع الكوتش جورج</button>' +
         '<button class="btn danger" type="button" data-act="reset">مسح كل البيانات</button>' +
-        '<p class="muted" style="margin:0;font-size:12px;text-align:center">بياناتك محفوظة على هاد الجهاز فقط.<br>GM Progress v1.1 · George Mousa Online Coaching</p></form>', function (b) {
+        '<p class="muted" style="margin:0;font-size:12px;text-align:center">بياناتك محفوظة على هاد الجهاز فقط.<br>GM Progress v1.2 · George Mousa Online Coaching</p></form>', function (b) {
         var f = $('#sf', b); bindChips(f);
         f.addEventListener('submit', function (e) {
           e.preventDefault();
@@ -448,6 +635,8 @@
       S = blank(); save(); closeSheet(); render();
     }
   };
+
+  Object.assign(ACTIONS, CH_ACTIONS);
 
   // Android hardware back button: close sheet first, then go back to the Today tab.
   window.gmBack = function () {
