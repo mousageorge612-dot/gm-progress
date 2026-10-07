@@ -80,6 +80,7 @@
     today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/><path d="m9 15 2 2 4-4"/></svg>',
     history: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
     report: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7M9 8h4"/></svg>',
+    dumbbell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg>',
     target: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>',
     gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>'
   };
@@ -93,14 +94,14 @@
   function render() {
     var app = $('#app');
     if (!S.profile) { app.innerHTML = onboardView(); bindOnboard(); return; }
-    var titles = { today: 'تسجيل اليوم', challenges: 'التحديات', history: 'السجل', report: 'التقارير' };
+    var titles = { today: 'تسجيل اليوم', plan: 'برنامجي', challenges: 'التحديات', history: 'السجل', report: 'التقارير' };
     app.innerHTML =
       '<div class="shell">' +
       '<header class="topbar"><div class="t"><img src="assets/img/logo.png" alt=""><div>' + titles[tab] + '<small>GM Progress</small></div></div>' +
       '<button class="iconbtn" data-act="settings" aria-label="الإعدادات">' + I.gear + '</button></header>' +
       '<main class="page" id="page"></main>' +
-      '<nav class="tabbar">' + tabBtn('today', 'اليوم', I.today) + tabBtn('challenges', 'التحديات', I.target) + tabBtn('history', 'السجل', I.history) + tabBtn('report', 'التقارير', I.report) + '</nav></div>';
-    ({ today: todayView, challenges: challengesView, history: historyView, report: reportView })[tab]($('#page'));
+      '<nav class="tabbar five">' + tabBtn('today', 'اليوم', I.today) + tabBtn('plan', 'برنامجي', I.dumbbell) + tabBtn('challenges', 'التحديات', I.target) + tabBtn('history', 'السجل', I.history) + tabBtn('report', 'التقارير', I.report) + '</nav></div>';
+    ({ today: todayView, plan: planView, challenges: challengesView, history: historyView, report: reportView })[tab]($('#page'));
   }
   function tabBtn(k, t, ic) { return '<button class="tab' + (tab === k ? ' on' : '') + '" data-tab="' + k + '">' + ic + '<span>' + t + '</span></button>'; }
 
@@ -135,9 +136,10 @@
       '<div class="brand"><img src="assets/img/logo.png" alt="George Mousa"></div>' +
       '<h1>التزامك اليومي<br>مع <span>George Mousa</span></h1>' +
       '<p class="lead">دقيقة وحدة آخر كل يوم: سجّل التزامك وابعت تقريرك للكوتش.</p>' +
+      (S.plan ? '<div class="install ok">✅ وصل برنامجك: ' + esc(S.plan.program) + '. سجّل اسمك وبلّش.</div>' : '') +
       QUOTE_HTML +
       '<form class="form" id="onb" style="margin-top:16px">' +
-      field('الاسم', '<input name="name" required placeholder="اسمك">') +
+      field('الاسم', '<input name="name" required placeholder="اسمك" value="' + esc(S.plan ? S.plan.name : '') + '">') +
       '<div class="field"><label>الهدف</label>' + chips('goal', GOALS, 'cut') + '</div>' +
       '<div class="row2">' + field('هدف الماء اليومي (لتر)', '<input name="waterTarget" type="number" inputmode="decimal" step="0.5" min="1" max="6" value="3" required>') +
       field('الباقة', '<select name="plan">' + Object.keys(PLANS).map(function (k) { return '<option value="' + k + '"' + (k === 'm3' ? ' selected' : '') + '>' + PLANS[k] + '</option>'; }).join('') + '</select>') + '</div>' +
@@ -166,6 +168,12 @@
     var isToday = editDate === todayStr();
     var saved = S.days[editDate];
     var d = Object.assign(blankDay(), saved || {});
+    if (!saved && S.plan) {
+      var pst = planStats(editDate), pl = (S.plog || {})[editDate];
+      if (!pst.day) d.train = 'rest'; else if (pst.exDone >= Math.ceil(pst.exTotal / 2)) d.train = 'yes';
+      if (pst.cardio) { d.cardio = true; d.cardioMin = String(parseInt(String(pst.day && pst.day.cardio.min).split('-').pop(), 10) || 20); }
+      if (pl && pst.meals) d.nutrition = Math.min(100, Math.round(pst.nutPct / 25) * 25);
+    }
     var q = function (icon, title, inner, hint) { return '<section class="card q"><h3><span>' + icon + ' ' + title + '</span>' + (hint ? '<span class="sub">' + hint + '</span>' : '') + '</h3>' + inner + '</section>'; };
     page.innerHTML =
       installHint() +
@@ -174,6 +182,7 @@
       '<div class="hi">أهلاً ' + esc(S.profile.name) + ' 👋</div>' +
       '<h2>' + (isToday ? 'كيف كان يومك؟' : 'تعديل يوم ' + fmtDay(editDate)) + '</h2></div></section>' +
       QUOTE_HTML +
+      planTodayCard(editDate) +
       chTodayCard(editDate) +
       (saved && isToday ? '<div class="install ok">✅ سجّلت يومك. فيك تعدّل وتبعت من جديد.</div>' : '') +
       '<form class="form" id="day">' +
@@ -262,6 +271,206 @@
     return '<div class="install"><span style="font-size:22px">📲</span><div><b>ثبّت التطبيق على الآيفون:</b> اضغط زر المشاركة <b>⬆︎</b> بأسفل Safari ثم اختر <b>إضافة إلى الشاشة الرئيسية</b>.</div></div>';
   }
 
+  /* ---------------- coach plan (training + nutrition from George's files) ---------------- */
+  var PLAN_BASE = IS_ANDROID_APP || location.protocol === 'file:' ? 'https://app.georgemousa.com/plans/' : 'plans/';
+  var planSeg = 'train';
+  function plog(date) { S.plog = S.plog || {}; return S.plog[date] || (S.plog[date] = { ex: {}, meals: {}, cardio: false }); }
+  function planDay(date) { var P = S.plan; if (!P) return null; var id = P.schedule[String(parseD(date).getDay())]; return id ? P.days.filter(function (x) { return x.id === id; })[0] : null; }
+  function exKey(day, i) { return day.id + '_' + i; }
+  function planStats(date) {
+    var P = S.plan, day = planDay(date), L = (S.plog || {})[date] || { ex: {}, meals: {} }, r = { day: day, exDone: 0, exTotal: 0, meals: 0, mealsTotal: P.meals.length, kcal: 0, protein: 0, cardio: !!L.cardio };
+    if (day) { r.exTotal = day.ex.length; day.ex.forEach(function (e, i) { if (L.ex[exKey(day, i)] && L.ex[exKey(day, i)].done) r.exDone++; }); }
+    P.meals.forEach(function (m) { if (L.meals[m.id]) { r.meals++; r.kcal += m.kcal; r.protein += m.protein; } });
+    r.nutPct = Math.round(r.kcal / P.targets.kcal * 100);
+    return r;
+  }
+  function lastKg(day, i, before) {
+    var k = exKey(day, i), en = day.ex[i].en, ds = Object.keys(S.plog || {}).filter(function (d) { return d < before; }).sort().reverse();
+    for (var j = 0; j < ds.length; j++) {
+      var ex = S.plog[ds[j]].ex;
+      for (var key in ex) if (ex[key].kg && (key === k || ex[key].en === en)) return { kg: ex[key].kg, date: ds[j] };
+    }
+    return null;
+  }
+  function fetchPlan(id, quiet) {
+    id = String(id || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+    if (!id) return;
+    fetch(PLAN_BASE + id + '.json', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (p) {
+      if (!p || !p.days || !p.meals) throw 0;
+      var isNew = !S.plan || S.plan.id !== p.id || S.plan.v !== p.v;
+      S.plan = p; save();
+      if (!quiet || isNew) toast(isNew && S.plan ? 'وصل برنامجك من الكوتش جورج 💪' : 'البرنامج محدّث ✅');
+      render();
+    }).catch(function () { if (!quiet) toast('ما قدرت جيب البرنامج. تأكد من الكود والإنترنت'); });
+  }
+  function planCodeFromUrl() {
+    var m = /[?&#]p=([a-z0-9-]+)/i.exec(location.search + location.hash);
+    if (m) { try { history.replaceState(null, '', location.pathname); } catch (e) {} return m[1]; }
+    return null;
+  }
+
+  function planTodayCard(date) {
+    if (!S.plan) return '';
+    var st = planStats(date), d = st.day;
+    return '<section class="card plancard"><h3><span>📋 برنامجك اليوم</span><button class="sub" data-tab="plan">افتح ←</button></h3>' +
+      '<div class="pc-row"><span class="pc-ic">🏋️</span><div><b>' + (d ? 'DAY ' + pad(d.n) + ' · ' + esc(d.title) : 'يوم راحة 😌') + '</b><small>' + (d ? num(st.exDone) + ' من ' + num(st.exTotal) + ' تمارين' + (st.cardio ? ' · ✅ كارديو' : '') : 'استشفاء ونوم كافي') + '</small></div>' +
+      (d ? '<div class="pbar"><i style="width:' + Math.round(st.exDone / st.exTotal * 100) + '%"></i></div>' : '') + '</div>' +
+      '<div class="pc-row"><span class="pc-ic">🍽️</span><div><b>' + num(st.meals) + ' من ' + num(st.mealsTotal) + ' وجبات</b><small>' + num(st.kcal) + ' / ' + num(S.plan.targets.kcal) + ' سعرة · ' + num(st.protein) + 'غ بروتين</small></div>' +
+      '<div class="pbar"><i style="width:' + Math.min(100, st.nutPct) + '%"></i></div></div></section>';
+  }
+
+  function planView(page) {
+    if (!S.plan) {
+      page.innerHTML = '<section class="hero" style="min-height:190px"><div class="hero-bg"></div><div class="hero-c"><span class="pill">برنامجي</span><h2>برنامجك الخاص من الكوتش</h2></div></section>' +
+        '<div class="card empty">لسا ما انضاف برنامجك.<br>افتح الرابط يلي بعتلك ياه الكوتش جورج، أو اكتب كود البرنامج هون.<br><br>' +
+        '<form id="pcode" class="form"><div class="field"><input name="code" placeholder="كود البرنامج" dir="ltr" autocapitalize="off"></div><button class="btn sm" type="submit">ضيف البرنامج</button></form></div>' +
+        '<button class="btn ghost" data-act="contact">اطلب برنامجك من الكوتش</button>';
+      $('#pcode').addEventListener('submit', function (e) { e.preventDefault(); fetchPlan(e.target.code.value); });
+      return;
+    }
+    var P = S.plan;
+    page.innerHTML =
+      '<div class="seg" id="pseg"><button data-k="train" class="' + (planSeg === 'train' ? 'on' : '') + '">🏋️ تمريني</button><button data-k="food" class="' + (planSeg === 'food' ? 'on' : '') + '">🍽️ أكلي</button><button data-k="week" class="' + (planSeg === 'week' ? 'on' : '') + '">📅 الأسبوع</button></div>' +
+      '<div id="pbody"></div>';
+    $('#pseg').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; planSeg = b.getAttribute('data-k'); render(); });
+    ({ train: planTrain, food: planFood, week: planWeek })[planSeg]($('#pbody'), todayStr());
+  }
+
+  function planTrain(el, date) {
+    var P = S.plan, d = planDay(date), L = plog(date);
+    if (!d) {
+      var next = null; for (var i = 1; i <= 7 && !next; i++) next = planDay(addDays(date, i)) ? addDays(date, i) : null;
+      el.innerHTML = '<section class="hero" style="min-height:170px"><div class="hero-bg mirror"></div><div class="hero-c"><span class="pill">' + WDAYS[parseD(date).getDay()] + '</span><h2>اليوم راحة 😌</h2><div class="hi">الاستشفاء والنوم جزء من البرنامج</div></div></section>' +
+        (next ? '<section class="card"><h3>التمرين الجاي</h3><p class="muted" style="margin:0">' + WDAYS[parseD(next).getDay()] + ': DAY ' + pad(planDay(next).n) + ' · ' + esc(planDay(next).title) + '</p></section>' : '');
+      return;
+    }
+    var st = planStats(date);
+    el.innerHTML =
+      '<section class="hero" style="min-height:170px"><div class="hero-bg"></div><div class="hero-c"><span class="pill">DAY ' + pad(d.n) + ' · ' + esc(d.en) + '</span><h2>' + esc(d.title) + '</h2><div class="hi">' + num(st.exDone) + ' من ' + num(st.exTotal) + ' تمارين</div></div></section>' +
+      '<details class="card lcard"><summary>🔥 الإحماء: ' + esc(d.warmup) + '</summary><p class="muted">' + esc(P.warmup.intro) + '</p>' +
+      '<div class="wu"><div><b>الجزء العلوي</b>' + P.warmup.upper.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join('') + '</div><div><b>الجزء السفلي</b>' + P.warmup.lower.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join('') + '</div></div>' +
+      '<ul class="tips">' + P.warmup.tips.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></details>' +
+      d.ex.map(function (e, i) {
+        var k = exKey(d, i), x = L.ex[k] || {}, last = lastKg(d, i, date);
+        return '<section class="card excard' + (x.done ? ' done' : '') + '"><div class="exh"><span class="exn">' + (i + 1) + '</span><div class="ext"><b>' + esc(e.ar) + '</b><small dir="ltr">' + esc(e.en) + '</small></div>' +
+          '<button class="check' + (x.done ? ' on' : '') + '" data-act="exToggle" data-k="' + k + '" data-i="' + i + '" aria-label="تم">✓</button></div>' +
+          '<div class="exm"><span><b>' + num(e.sets) + '</b>مجموعات</span><span><b>' + num(e.reps) + '</b>تكرار</span><span><b>' + num(e.rest) + '</b>راحة</span></div>' +
+          '<div class="exf"><label>الوزن (كغ)<input type="number" inputmode="decimal" step="0.5" min="0" max="500" data-kg="' + k + '" data-i="' + i + '" value="' + esc(x.kg || '') + '" placeholder="' + (last ? esc(last.kg) : '—') + '"></label>' +
+          '<span class="last">' + (last ? 'آخر مرة: ' + num(last.kg) + ' كغ' : 'سجّل وزنك لتشوف تقدّمك') + '</span>' +
+          (e.yt ? '<button class="yt" data-act="openUrl" data-u="' + esc(e.yt) + '">▶ الشرح</button>' : '') + '</div></section>';
+      }).join('') +
+      '<section class="card excard' + (L.cardio ? ' done' : '') + '"><div class="exh"><span class="exn">🚶</span><div class="ext"><b>كارديو: ' + esc(d.cardio.type) + ' ' + num(d.cardio.min) + ' د</b><small>' + esc(d.cardio.when) + '</small></div>' +
+      '<button class="check' + (L.cardio ? ' on' : '') + '" data-act="cardioToggle" aria-label="تم">✓</button></div>' +
+      '<ul class="tips">' + P.cardioTips.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></section>' +
+      '<button class="btn" data-tab="today">خلصت؟ سجّل يومك ←</button>';
+    $$('[data-kg]', el).forEach(function (inp) {
+      inp.addEventListener('change', function () {
+        var k = inp.getAttribute('data-kg'), Lx = plog(date), e = d.ex[+inp.getAttribute('data-i')];
+        Lx.ex[k] = Object.assign(Lx.ex[k] || {}, { kg: inp.value, en: e.en });
+        if (inp.value && !Lx.ex[k].done) { Lx.ex[k].done = true; save(); keepScroll(render); return; }
+        save();
+      });
+    });
+  }
+
+  function planFood(el, date) {
+    var P = S.plan, L = plog(date), st = planStats(date), T = P.targets;
+    el.innerHTML =
+      '<section class="card"><h3><span>🎯 هدفك اليومي</span><span class="sub">' + esc(P.goal) + '</span></h3>' +
+      '<div class="macro"><div><b dir="ltr">' + num(st.kcal) + '<em>/' + T.kcal + '</em></b><span>سعرة</span></div><div><b dir="ltr">' + num(st.protein) + '<em>/' + T.protein + 'غ</em></b><span>بروتين</span></div><div><b>' + num(T.carbs) + 'غ</b><span>كارب</span></div><div><b>' + num(T.fat) + 'غ</b><span>دهون</span></div></div>' +
+      '<div class="pbar big"><i style="width:' + Math.min(100, st.nutPct) + '%"></i></div><p class="muted" style="font-size:12.5px;margin:6px 0 0">علّم ✓ على كل وجبة أكلتها متل ما هي بالنظام أو من البدائل. 💧 المي: ' + num(T.water) + ' لتر</p></section>' +
+      P.meals.map(function (m) {
+        var on = !!L.meals[m.id];
+        return '<section class="card meal' + (on ? ' done' : '') + '"><div class="exh"><span class="exn">' + m.icon + '</span><div class="ext"><b>' + esc(m.name) + '</b><small>' + esc(m.time) + '</small></div>' +
+          '<button class="check' + (on ? ' on' : '') + '" data-act="mealToggle" data-id="' + m.id + '" aria-label="أكلت">✓</button></div>' +
+          '<div class="exm"><span><b>' + num(m.kcal) + '</b>سعرة</span><span><b>' + num(m.protein) + 'غ</b>بروتين</span></div>' +
+          '<ul class="items">' + m.items.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' +
+          (m.alts && m.alts.length ? '<details class="alts"><summary>' + (m.items.length === 1 ? 'الخيارات' : 'البدائل') + ' (' + m.alts.length + ')</summary><ul>' + m.alts.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></details>' : '') +
+          (m.note ? '<p class="mnote">💡 ' + esc(m.note) + '</p>' : '') + '</section>';
+      }).join('') +
+      '<details class="card lcard"><summary>✋ القياس بالإيد</summary><div class="ptable">' + P.portions.map(function (r) { return '<div><b>' + esc(r[0]) + '</b><span>' + esc(r[1]) + '</span><em>' + esc(r[2]) + '</em></div>'; }).join('') + '</div></details>' +
+      '<details class="card lcard"><summary>📌 قواعد الالتزام</summary><ol class="tips">' + P.rules.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol></details>';
+  }
+
+  function planWeek(el) {
+    var P = S.plan, t = todayStr(), dow = parseD(t).getDay(), mon = addDays(t, -((dow + 6) % 7)), rows = '', trainDays = 0, doneDays = 0;
+    for (var i = 0; i < 7; i++) {
+      var dt = addDays(mon, i), d = planDay(dt), st = d ? planStats(dt) : null;
+      if (d) { trainDays++; if (st.exDone >= Math.ceil(st.exTotal / 2)) doneDays++; }
+      rows += '<div class="wkrow' + (dt === t ? ' today' : '') + '"><span class="wd">' + WDAYS[parseD(dt).getDay()] + '</span><div>' + (d ? '<b>DAY ' + pad(d.n) + '</b> ' + esc(d.title) : '<span class="muted">راحة</span>') + '</div>' +
+        (d && dt <= t && dt >= ((S.profile && S.profile.start) || dt) ? '<em class="' + (st.exDone === st.exTotal ? 'ok' : st.exDone ? 'mid' : 'no') + '">' + st.exDone + '/' + st.exTotal + '</em>' : '<em></em>') + '</div>';
+    }
+    el.innerHTML =
+      '<section class="card"><h3><span>📅 ' + esc(P.program) + '</span><span class="sub">' + num(doneDays) + ' من ' + num(trainDays) + ' هالأسبوع</span></h3>' + rows + '</section>' +
+      '<section class="card"><h3>📏 المتابعة الأسبوعية</h3><p style="margin:0 0 10px">' + esc(P.checkin.ask) + '</p>' +
+      '<button class="btn wa" data-act="planCheckin">ابعت المتابعة الأسبوعية</button></section>' +
+      '<p class="muted" style="font-size:12px;text-align:center">برنامج ' + esc(P.name) + ' · بلّش ' + esc(P.start) + '</p>';
+  }
+
+  function planReportLines(date) {
+    if (!S.plan) return [];
+    var st = planStats(date), out = [];
+    out.push(st.day ? '📋 البرنامج: DAY ' + pad(st.day.n) + ' (' + st.day.title + ') · ' + st.exDone + '/' + st.exTotal + ' تمارين' + (st.cardio ? ' + كارديو' : '') : '📋 البرنامج: يوم راحة');
+    out.push('🥗 الوجبات: ' + st.meals + '/' + st.mealsTotal + ' · ' + st.kcal + '/' + S.plan.targets.kcal + ' سعرة · ' + st.protein + 'غ بروتين');
+    if (st.day) st.day.ex.forEach(function (e, i) { var x = ((S.plog || {})[date] || { ex: {} }).ex[exKey(st.day, i)]; if (x && x.kg) out.push('   • ' + e.ar + ': ' + x.kg + ' كغ'); });
+    return out;
+  }
+  function planPeriodLines(ds) {
+    if (!S.plan) return [];
+    var td = 0, done = 0, meals = 0, mt = 0;
+    ds.forEach(function (d) { var st = planStats(d); if (st.day && d <= todayStr() && d >= ((S.profile && S.profile.start) || d)) { td++; if (st.exDone >= Math.ceil(st.exTotal / 2)) done++; } if ((S.plog || {})[d]) { meals += st.meals; mt += st.mealsTotal; } });
+    return ['📋 تمارين البرنامج: ' + done + '/' + td + ' أيام', '🥗 الوجبات حسب النظام: ' + (mt ? Math.round(meals / mt * 100) + '%' : '—')];
+  }
+  function keepScroll(fn) { var y = window.scrollY; fn(); window.scrollTo(0, y); }
+
+  var PLAN_ACTIONS = {
+    exToggle: function (el) {
+      var date = todayStr(), d = planDay(date), L = plog(date), k = el.getAttribute('data-k');
+      L.ex[k] = Object.assign(L.ex[k] || {}, { en: d.ex[+el.getAttribute('data-i')].en }); L.ex[k].done = !L.ex[k].done; save();
+      var st = planStats(date);
+      if (L.ex[k].done) { if (navigator.vibrate) navigator.vibrate(20); toast(st.exDone === st.exTotal ? '🔥 خلّصت تمرين اليوم كله!' : 'عاش 💪 ' + st.exDone + '/' + st.exTotal); }
+      keepScroll(render);
+    },
+    cardioToggle: function () { var L = plog(todayStr()); L.cardio = !L.cardio; save(); if (L.cardio) toast('كارديو ✅'); keepScroll(render); },
+    mealToggle: function (el) {
+      var L = plog(todayStr()), id = el.getAttribute('data-id');
+      if (L.meals[id]) delete L.meals[id]; else L.meals[id] = 1; save();
+      if (L.meals[id]) toast('بالعافية ✅'); keepScroll(render);
+    },
+    openUrl: function (el) { openExternal(el.getAttribute('data-u')); },
+    planCheckin: function () {
+      var ws = range(7).filter(function (d) { return S.days[d] && S.days[d].weight; }).map(function (d) { return +S.days[d].weight; });
+      var avg = ws.length ? r1(ws.reduce(function (a, b) { return a + b; }, 0) / ws.length) : '';
+      openSheet('<h2>المتابعة الأسبوعية</h2><form class="form" id="wci"><div class="row2">' +
+        field('معدل الوزن (كغ)', '<input name="w" type="number" inputmode="decimal" step="0.1" value="' + avg + '" placeholder="معدل 3 أيام الصبح" required>') +
+        field('محيط الخصر (سم)', '<input name="waist" type="number" inputmode="decimal" step="0.5" placeholder="على مستوى السرّة" required>') + '</div>' +
+        '<div class="field"><label>القوة بالتمرين</label>' + chips('str', { up: 'عم تزيد', same: 'ثابتة', down: 'نازلة' }, null) + '</div>' +
+        '<div class="field"><label>التعب</label>' + chips('tired', { low: 'قليل', mid: 'عادي', high: 'عالي' }, null) + '</div>' +
+        field('ملاحظة (اختياري)', '<textarea name="note" rows="2" maxlength="300"></textarea>') +
+        '<p class="hint">📸 بعد ما ينفتح الواتساب، ابعت الصور الأمامية والجانبية بنفس المحادثة.</p>' +
+        '<button class="btn wa" type="submit">ابعت على واتساب</button></form>', function (b) {
+        var f = $('#wci', b); bindChips(f);
+        f.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var M = { up: 'عم تزيد', same: 'ثابتة', down: 'نازلة', low: 'قليل', mid: 'عادي', high: 'عالي' };
+          var L = ['📏 المتابعة الأسبوعية – GM Progress', '👤 ' + S.profile.name, '📅 أسبوع ' + range(7)[0] + ' → ' + todayStr(), '',
+            '⚖️ معدل الوزن: ' + f.w.value + ' كغ', '📐 الخصر: ' + f.waist.value + ' سم'];
+          if (chipVal(f, 'str')) L.push('🏋️ القوة: ' + M[chipVal(f, 'str')]);
+          if (chipVal(f, 'tired')) L.push('😮‍💨 التعب: ' + M[chipVal(f, 'tired')]);
+          planPeriodLines(range(7)).forEach(function (x) { L.push(x); });
+          if (f.note.value.trim()) L.push('📝 ' + f.note.value.trim());
+          L.push('', '📸 الصور جاية بالرسائل الجاية');
+          S.checkins = S.checkins || []; S.checkins.push({ date: todayStr(), w: f.w.value, waist: f.waist.value }); save();
+          closeSheet(); openExternal(waLink(L.join('\n')));
+        });
+      });
+    },
+    planRefresh: function () { if (S.plan) fetchPlan(S.plan.id); },
+    planCode: function () {
+      var c = prompt('اكتب كود البرنامج يلي بعتلك ياه الكوتش:'); if (c) { closeSheet(); fetchPlan(c); }
+    }
+  };
+
   /* ---------------- history ---------------- */
   function historyView(page) {
     var last7 = range(7), last30 = range(30);
@@ -308,6 +517,7 @@
     L.push('😊 المزاج: ' + MOOD[d.mood]);
     if (d.weight) L.push('⚖️ الوزن: ' + d.weight + ' كغ');
     if (d.note) L.push('📝 ملاحظة: ' + d.note);
+    var pr = planReportLines(date); if (pr.length) { L.push(''); pr.forEach(function (x) { L.push(x); }); }
     var cl = chReportLines(date); if (cl.length) { L.push(''); cl.forEach(function (x) { L.push(x); }); }
     L.push('');
     L.push('⭐ النتيجة: ' + score(d) + '%');
@@ -336,6 +546,7 @@
       L.push('⚖️ الوزن: ' + (w.length > 1 ? w0 + ' ← ' + w1 + ' كغ (' + signed(w1 - w0) + ')' : w1 + ' كغ'));
     }
     L.push('');
+    var pp = planPeriodLines(ds); if (pp.length) { pp.forEach(function (x) { L.push(x); }); L.push(''); }
     var cp = chPeriodLines(ds); if (cp.length) { cp.forEach(function (x) { L.push(x); }); L.push(''); }
     L.push('⭐ متوسط النتيجة: ' + Math.round(mean(score)) + '%');
     L.push('');
@@ -603,10 +814,11 @@
         '<div class="row2">' + field('هدف الماء (لتر)', '<input name="waterTarget" type="number" step="0.5" min="1" max="6" required value="' + p.waterTarget + '">') +
         field('الباقة', '<select name="plan">' + Object.keys(PLANS).map(function (k) { return '<option value="' + k + '"' + (k === p.plan ? ' selected' : '') + '>' + PLANS[k] + '</option>'; }).join('') + '</select>') + '</div>' +
         '<button class="btn" type="submit">حفظ</button>' +
+        (S.plan ? '<button class="btn ghost" type="button" data-act="planRefresh">🔄 تحديث برنامجي</button>' : '<button class="btn ghost" type="button" data-act="planCode">📋 ضيف كود البرنامج</button>') +
         '<div class="actions2"><button class="btn ghost" type="button" data-act="export">نسخة احتياطية</button><button class="btn ghost" type="button" data-act="import">استرجاع نسخة</button></div>' +
         '<button class="btn ghost" type="button" data-act="contact">تواصل مع الكوتش جورج</button>' +
         '<button class="btn danger" type="button" data-act="reset">مسح كل البيانات</button>' +
-        '<p class="muted" style="margin:0;font-size:12px;text-align:center">بياناتك محفوظة على هاد الجهاز فقط.<br>GM Progress v1.2 · George Mousa Online Coaching</p></form>', function (b) {
+        '<p class="muted" style="margin:0;font-size:12px;text-align:center">بياناتك محفوظة على هاد الجهاز فقط.<br>GM Progress v1.3 · George Mousa Online Coaching</p></form>', function (b) {
         var f = $('#sf', b); bindChips(f);
         f.addEventListener('submit', function (e) {
           e.preventDefault();
@@ -636,7 +848,7 @@
     }
   };
 
-  Object.assign(ACTIONS, CH_ACTIONS);
+  Object.assign(ACTIONS, CH_ACTIONS, PLAN_ACTIONS);
 
   // Android hardware back button: close sheet first, then go back to the Today tab.
   window.gmBack = function () {
@@ -645,7 +857,10 @@
     return false;
   };
 
+  var codeFromUrl = planCodeFromUrl();
   render();
+  if (codeFromUrl) fetchPlan(codeFromUrl);
+  else if (S.plan) fetchPlan(S.plan.id, true);
   if ('serviceWorker' in navigator && location.protocol === 'https:' && !IS_ANDROID_APP) {
     navigator.serviceWorker.register('sw.js').catch(function () {});
   }

@@ -1,4 +1,4 @@
-const CACHE = 'gm-progress-v3';
+const CACHE = 'gm-progress-v4';
 const FILES = [
   './', './index.html', './manifest.webmanifest',
   './assets/styles.css', './assets/app.js',

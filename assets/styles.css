@@ -229,3 +229,55 @@ img{display:block;max-width:100%}
 .idbox small{display:block;color:var(--muted);font-size:11.5px;font-weight:700}
 .idbox b{font-size:14.5px}
 .idbox.tip{border-color:rgba(255,184,0,.4)}
+/* ---------- v1.3 coach plan ---------- */
+.tabbar.five{grid-template-columns:repeat(5,1fr)}
+.tabbar.five .tab{font-size:10.5px}
+.plancard .pc-row{display:grid;grid-template-columns:34px 1fr;gap:4px 10px;align-items:center;padding:8px 0;border-top:1px solid #1c1c1c}
+.plancard .pc-row:first-of-type{border-top:0}
+.plancard .pc-ic{font-size:20px;grid-row:span 2}
+.plancard b{display:block;font-size:14.5px}.plancard small{color:var(--muted);font-size:12.5px}
+.pbar{height:7px;border-radius:9px;background:#222;overflow:hidden;grid-column:2}
+.pbar i{display:block;height:100%;background:var(--gold);border-radius:9px;transition:width .3s}
+.pbar.big{height:10px;margin-top:12px}
+.excard,.meal{padding:14px 14px 12px}
+.excard.done,.meal.done{border-color:#2f5d22;background:linear-gradient(180deg,#0f170c,#0e0e0e)}
+.exh{display:flex;align-items:center;gap:10px}
+.exn{flex:none;width:34px;height:34px;border-radius:11px;background:#201900;color:var(--gold);display:grid;place-items:center;font-weight:900;font-size:16px;border:1px solid #4a3900}
+.ext{flex:1;min-width:0}.ext b{display:block;font-size:15.5px;line-height:1.35}.ext small{display:block;color:var(--muted);font-size:12px}
+.check{flex:none;width:44px;height:44px;border-radius:50%;border:2px solid #3a3a3a;color:transparent;font-size:22px;font-weight:900;display:grid;place-items:center}
+.check.on{background:var(--green);border-color:var(--green);color:#000}
+.exm{display:flex;gap:8px;margin:10px 0}
+.exm span{flex:1;background:var(--surface2);border-radius:12px;padding:6px 4px;text-align:center;font-size:11.5px;color:var(--muted)}
+.exm b{display:block;color:#fff;font-size:15px}
+.exf{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.exf label{font-size:11.5px;color:var(--muted);display:flex;flex-direction:column;gap:3px;width:92px}
+.exf input{background:rgba(20,20,20,.92);border:1px solid var(--line);border-radius:11px;padding:8px 10px;font-size:16px;width:100%;outline:none}
+.exf input:focus{border-color:var(--gold)}
+.exf .last{flex:1;font-size:12px;color:var(--muted);padding-bottom:9px}
+.yt{background:#2a0b0b;color:#ff6b6b;border:1px solid #4d1717;border-radius:11px;padding:8px 12px;font-weight:900;font-size:13px}
+.lcard summary{font-weight:900;cursor:pointer;list-style:none}
+.lcard summary::-webkit-details-marker{display:none}
+.lcard p{margin:10px 0 0;font-size:13.5px}
+.wu{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.wu b{display:block;color:var(--gold);font-size:13px;margin-bottom:4px}
+.wu span{display:block;font-size:13px;padding:3px 0;border-bottom:1px dashed #222}
+.tips{margin:10px 0 0;padding-inline-start:18px;font-size:13px;color:var(--soft)}
+.tips li{margin:3px 0}
+.items{margin:0;padding-inline-start:18px;font-size:13.5px}
+.items li{margin:3px 0}
+.alts{margin-top:8px;background:var(--surface2);border-radius:12px;padding:8px 12px}
+.alts summary{font-weight:900;color:var(--gold);font-size:13px;cursor:pointer}
+.alts ul{margin:6px 0 0;padding-inline-start:18px;font-size:13px}
+.mnote{margin:8px 0 0;font-size:12.5px;color:var(--muted)}
+.macro{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.macro div{background:var(--surface2);border-radius:12px;padding:8px 4px;text-align:center}
+.macro b{display:block;font-size:16px}.macro em{font-style:normal;color:var(--muted);font-size:11px}
+.macro span{font-size:11.5px;color:var(--muted)}
+.ptable div{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:6px;padding:7px 0;border-bottom:1px solid #1c1c1c;font-size:12.5px}
+.ptable span{color:var(--gold);font-weight:700}.ptable em{font-style:normal;color:var(--muted)}
+.wkrow{display:grid;grid-template-columns:70px 1fr auto;gap:8px;align-items:center;padding:9px 6px;border-bottom:1px solid #1c1c1c;font-size:13.5px}
+.wkrow.today{background:#1a1500;border-radius:10px}
+.wkrow .wd{color:var(--muted);font-weight:700}
+.wkrow em{font-style:normal;font-weight:900;font-size:13px}
+.wkrow em.ok{color:var(--green)}.wkrow em.mid{color:var(--gold)}.wkrow em.no{color:var(--red)}
+.card h3 button.sub{background:none;color:var(--gold);font-weight:700}
