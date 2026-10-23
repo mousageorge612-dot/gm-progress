@@ -94,14 +94,16 @@
   function render() {
     var app = $('#app');
     if (!S.profile) { app.innerHTML = onboardView(); bindOnboard(); return; }
-    var titles = { today: 'تسجيل اليوم', plan: 'برنامجي', challenges: 'التحديات', history: 'السجل', report: 'التقارير' };
+    var titles = { today: 'تسجيل اليوم', plan: 'برنامجي', challenges: 'العادات', report: 'تقدّمي' };
+    if (tab === 'history') tab = 'report';
+    if (tab === 'plan' && !S.plan) tab = 'today';
     app.innerHTML =
       '<div class="shell">' +
-      '<header class="topbar"><div class="t"><img src="assets/img/logo.png" alt=""><div>' + titles[tab] + '<small>GM Progress</small></div></div>' +
+      '<header class="topbar"><div class="t"><img src="assets/img/logo.png" alt="George Mousa"><div>' + titles[tab] + '<small class="en">GM PROGRESS</small></div></div>' +
       '<button class="iconbtn" data-act="settings" aria-label="الإعدادات">' + I.gear + '</button></header>' +
       '<main class="page" id="page"></main>' +
-      '<nav class="tabbar five">' + tabBtn('today', 'اليوم', I.today) + tabBtn('plan', 'برنامجي', I.dumbbell) + tabBtn('challenges', 'التحديات', I.target) + tabBtn('history', 'السجل', I.history) + tabBtn('report', 'التقارير', I.report) + '</nav></div>';
-    ({ today: todayView, plan: planView, challenges: challengesView, history: historyView, report: reportView })[tab]($('#page'));
+      '<nav class="tabbar ' + (S.plan ? 'four' : 'three') + '">' + tabBtn('today', 'اليوم', I.today) + (S.plan ? tabBtn('plan', 'برنامجي', I.dumbbell) : '') + tabBtn('challenges', 'العادات', I.target) + tabBtn('report', 'تقدّمي', I.history) + '</nav></div>';
+    ({ today: todayView, plan: planView, challenges: challengesView, report: reportView })[tab]($('#page'));
   }
   function tabBtn(k, t, ic) { return '<button class="tab' + (tab === k ? ' on' : '') + '" data-tab="' + k + '">' + ic + '<span>' + t + '</span></button>'; }
 
@@ -161,7 +163,7 @@
     var r = 36, c = 2 * Math.PI * r;
     return '<svg viewBox="0 0 86 86" style="width:' + (size || 86) + 'px;height:' + (size || 86) + 'px;flex:none"><circle cx="43" cy="43" r="' + r + '" stroke="#222" stroke-width="9" fill="none"/>' +
       '<circle cx="43" cy="43" r="' + r + '" stroke="#ffb800" stroke-width="9" fill="none" stroke-linecap="round" stroke-dasharray="' + (c * pct / 100) + ' ' + c + '" transform="rotate(-90 43 43)"/>' +
-      '<text x="43" y="50" text-anchor="middle" fill="#fff" font-size="19" font-weight="900" font-family="Cairo">' + pct + '%</text></svg>';
+      '<text x="43" y="50" text-anchor="middle" fill="#fff" font-size="19" font-weight="900" font-family="inherit">' + pct + '%</text></svg>';
   }
 
   function todayView(page) {
@@ -177,11 +179,10 @@
     var q = function (icon, title, inner, hint) { return '<section class="card q"><h3><span>' + icon + ' ' + title + '</span>' + (hint ? '<span class="sub">' + hint + '</span>' : '') + '</h3>' + inner + '</section>'; };
     page.innerHTML =
       installHint() +
-      '<section class="hero" style="min-height:210px"><div class="hero-bg"></div><div class="hero-c">' +
+      '<section class="hero"><div class="hero-bg"></div><div class="hero-c">' +
       '<span class="pill">🔥 ' + num(streak()) + ' يوم متتالي</span>' +
       '<div class="hi">أهلاً ' + esc(S.profile.name) + ' 👋</div>' +
       '<h2>' + (isToday ? 'كيف كان يومك؟' : 'تعديل يوم ' + fmtDay(editDate)) + '</h2></div></section>' +
-      QUOTE_HTML +
       planTodayCard(editDate) +
       chTodayCard(editDate) +
       (saved && isToday ? '<div class="install ok">✅ سجّلت يومك. فيك تعدّل وتبعت من جديد.</div>' : '') +
@@ -202,8 +203,8 @@
         '<div class="field"><input name="weight" type="number" inputmode="decimal" step="0.1" min="30" max="300" value="' + esc(d.weight) + '" placeholder="كغ"></div>' +
         '<div class="field" style="margin-top:10px"><label>ملاحظة للكوتش (اختياري)</label><textarea name="note" rows="2" maxlength="300" placeholder="أي شي بدك تخبرني فيه">' + esc(d.note) + '</textarea></div></section>' +
       '<section class="card scorebar"><div class="ring" id="ringWrap"></div>' +
-      '<button class="btn wa" type="submit" data-send="1">احفظ وابعت التقرير على واتساب</button>' +
-      '<button class="btn ghost" type="submit">احفظ بدون إرسال</button></section>' +
+      '<button class="btn wa" type="submit" data-send="1">احفظ وابعت</button>' +
+      '<button class="btn ghost" type="submit">احفظ بس</button></section>' +
       '</form>';
 
     var f = $('#day');
@@ -321,7 +322,7 @@
 
   function planView(page) {
     if (!S.plan) {
-      page.innerHTML = '<section class="hero" style="min-height:190px"><div class="hero-bg"></div><div class="hero-c"><span class="pill">برنامجي</span><h2>برنامجك الخاص من الكوتش</h2></div></section>' +
+      page.innerHTML = '<section class="hero"><div class="hero-bg"></div><div class="hero-c"><span class="pill">برنامجي</span><h2>برنامجك الخاص من الكوتش</h2></div></section>' +
         '<div class="card empty">لسا ما انضاف برنامجك.<br>افتح الرابط يلي بعتلك ياه الكوتش جورج، أو اكتب كود البرنامج هون.<br><br>' +
         '<form id="pcode" class="form"><div class="field"><input name="code" placeholder="كود البرنامج" dir="ltr" autocapitalize="off"></div><button class="btn sm" type="submit">ضيف البرنامج</button></form></div>' +
         '<button class="btn ghost" data-act="contact">اطلب برنامجك من الكوتش</button>';
@@ -340,13 +341,13 @@
     var P = S.plan, d = planDay(date), L = plog(date);
     if (!d) {
       var next = null; for (var i = 1; i <= 7 && !next; i++) next = planDay(addDays(date, i)) ? addDays(date, i) : null;
-      el.innerHTML = '<section class="hero" style="min-height:170px"><div class="hero-bg mirror"></div><div class="hero-c"><span class="pill">' + WDAYS[parseD(date).getDay()] + '</span><h2>اليوم راحة 😌</h2><div class="hi">الاستشفاء والنوم جزء من البرنامج</div></div></section>' +
+      el.innerHTML = '<section class="hero"><div class="hero-bg"></div><div class="hero-c"><span class="pill">' + WDAYS[parseD(date).getDay()] + '</span><h2>اليوم راحة 😌</h2><div class="hi">الاستشفاء والنوم جزء من البرنامج</div></div></section>' +
         (next ? '<section class="card"><h3>التمرين الجاي</h3><p class="muted" style="margin:0">' + WDAYS[parseD(next).getDay()] + ': DAY ' + pad(planDay(next).n) + ' · ' + esc(planDay(next).title) + '</p></section>' : '');
       return;
     }
     var st = planStats(date);
     el.innerHTML =
-      '<section class="hero" style="min-height:170px"><div class="hero-bg"></div><div class="hero-c"><span class="pill">DAY ' + pad(d.n) + ' · ' + esc(d.en) + '</span><h2>' + esc(d.title) + '</h2><div class="hi">' + num(st.exDone) + ' من ' + num(st.exTotal) + ' تمارين</div></div></section>' +
+      '<section class="hero"><div class="hero-bg"></div><div class="hero-c"><span class="pill">DAY ' + pad(d.n) + ' · ' + esc(d.en) + '</span><h2>' + esc(d.title) + '</h2><div class="hi">' + num(st.exDone) + ' من ' + num(st.exTotal) + ' تمارين</div></div></section>' +
       '<details class="card lcard"><summary>🔥 الإحماء: ' + esc(d.warmup) + '</summary><p class="muted">' + esc(P.warmup.intro) + '</p>' +
       '<div class="wu"><div><b>الجزء العلوي</b>' + P.warmup.upper.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join('') + '</div><div><b>الجزء السفلي</b>' + P.warmup.lower.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join('') + '</div></div>' +
       '<ul class="tips">' + P.warmup.tips.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></details>' +
@@ -472,7 +473,7 @@
   };
 
   /* ---------------- history ---------------- */
-  function historyView(page) {
+  function historyHtml() {
     var last7 = range(7), last30 = range(30);
     var logged7 = last7.filter(function (d) { return S.days[d]; });
     var a7 = logged7.length ? Math.round(logged7.reduce(function (a, d) { return a + score(S.days[d]); }, 0) / logged7.length) : null;
@@ -481,21 +482,20 @@
       var s = S.days[d] ? score(S.days[d]) : 0;
       return '<div class="bar"><em>' + (S.days[d] ? s : '') + '</em><i class="' + (S.days[d] ? scoreClass(s) : 'none') + '" style="height:' + Math.max(3, s) + '%"></i><span>' + parseD(d).getDate() + '</span></div>';
     }).join('');
-    var list = Object.keys(S.days).sort().reverse();
-    page.innerHTML =
-      '<section class="hero" style="min-height:180px"><div class="hero-bg mirror"></div><div class="hero-c"><span class="pill">الاستمرارية</span><h2>يوم ورا يوم، بتوصل</h2></div></section>' +
+    var list = Object.keys(S.days).sort().reverse().slice(0, 14);
+    return '<section class="hero"><div class="hero-bg"></div><div class="hero-c"><span class="pill">يومي · أسبوعي · شهري</span><h2>يوم ورا يوم، بتوصل</h2></div></section>' +
       '<div class="stats">' +
       '<div class="stat"><b>' + num(streak()) + '</b><span>يوم متتالي 🔥</span></div>' +
       '<div class="stat"><b>' + (a7 == null ? '—' : num(a7 + '%')) + '</b><span>معدل آخر 7 أيام</span></div>' +
       '<div class="stat"><b>' + num(logged30 + '/30') + '</b><span>أيام مسجّلة</span></div></div>' +
       '<section class="card"><h3>نتيجتك آخر 14 يوم</h3><div class="bars" dir="ltr">' + chart + '</div></section>' +
-      '<section class="card"><h3>كل الأيام <span class="sub">اضغط على يوم لتعدّله</span></h3><div class="list">' +
+      '<section class="card"><h3>آخر الأيام <span class="sub">اضغط على يوم لتعدّله</span></h3><div class="list">' +
       (list.length ? list.map(function (d) {
         var x = S.days[d], s = score(x);
         return '<button class="li dayrow" data-act="editDay" data-d="' + d + '"><div><div class="v">' + fmtDay(d) + '</div><div class="d">' +
           (x.train === 'yes' ? '🏋️ تمرين' : x.train === 'rest' ? '😌 راحة' : '✖️ بدون تمرين') + ' · 🍽️ ' + num(x.nutrition + '%') + ' · 💧 ' + num(x.water) + ' · 🛌 ' + num(x.sleep) + (x.relapse ? ' · 🔄' : '') +
           '</div></div><span class="score ' + scoreClass(s) + '">' + num(s + '%') + '</span></button>';
-      }).join('') : '<div class="empty">لسا ما سجّلت أي يوم. ابدأ من تبويب "اليوم".</div>') + '</div></section>';
+      }).join('') : '<div class="empty">لسا ما سجّلت أي يوم. ابدأ من تبويب "اليوم".</div>') + '</div></section>' + QUOTE_HTML;
   }
 
   /* ---------------- reports ---------------- */
@@ -572,7 +572,8 @@
   }
   function reportView(page) {
     page.innerHTML =
-      '<section class="hero" style="min-height:190px"><div class="hero-bg outdoor"></div><div class="hero-c"><span class="pill">يومي · أسبوعي · شهري</span><h2>ابعت تقريرك للكوتش جورج</h2></div></section>' +
+      historyHtml() +
+      '<h3 class="sect">📤 ابعت تقريرك للكوتش</h3>' +
       '<div class="seg" id="kind">' + [['day', 'يومي'], ['week', 'أسبوعي'], ['month', 'شهري']].map(function (k) { return '<button data-k="' + k[0] + '" class="' + (reportKind === k[0] ? 'on' : '') + '">' + k[1] + '</button>'; }).join('') + '</div>' +
       (reportKind === 'day' ? '<div class="card" style="padding:12px 16px">' + field('اليوم', '<input id="rdate" type="date" value="' + reportDate + '" max="' + todayStr() + '">') + '</div>' : '') +
       '<section class="card"><h3>معاينة التقرير <span class="sub">' + (reportKind === 'week' ? 'آخر 7 أيام' : reportKind === 'month' ? 'آخر 30 يوم' : '') + '</span></h3><div class="report" id="rep"></div></section>' +
@@ -617,7 +618,7 @@
     { icon: '🍬', title: 'بدون سكر مضاف', kind: 'quit', days: 30, identity: 'أنا شخص ما بياكل سكر', plan: 'لما بدّي شي حلو، باكل فاكهة أو تمر', tip: 'خلّي الإغراء غير مرئي: شيل الحلويات من البيت ومن مكتبك.' },
     { icon: '🍞', title: 'بدون خبز أبيض', kind: 'quit', days: 30, identity: 'أنا شخص بيختار الكربوهيدرات الصح', plan: 'باستبدل الخبز الأبيض بخبز أسمر أو شوفان', tip: 'سهّل البديل: اشتري الخبز الأسمر وحطه بمكان الخبز الأبيض.' },
     { icon: '🥤', title: 'بدون مشروبات غازية', kind: 'quit', days: 30, identity: 'أنا شخص بيشرب مي مش سكر', plan: 'لما بدّي شي بارد، بشرب مي باردة أو صودا بدون سكر', tip: 'خلّي قنينة مي باردة دايماً بالبراد بمكان الغازيات.' },
-    { icon: '🍔', title: 'بدون أكل سريع', kind: 'quit', days: 30, identity: 'أنا شخص بيحضّر أكله', plan: 'بحضّر وجباتي يوم الجمعة للأسبوع كله', tip: 'امسح تطبيقات التوصيل من موبايلك خلال التحدي.' },
+    { icon: '🍔', title: 'بدون أكل سريع', kind: 'quit', days: 30, identity: 'أنا شخص بيحضّر أكله', plan: 'بحضّر وجباتي يوم الجمعة للأسبوع كله', tip: 'امسح تطبيقات التوصيل من موبايلك خلال هالفترة.' },
     { icon: '🌙', title: 'ما في أكل بعد 10 بالليل', kind: 'quit', days: 21, identity: 'أنا شخص مطبخه بيسكّر بكير', plan: 'بعد العشا بنضّف سناني، وهي إشارة إنه خلص الأكل', tip: 'تكديس العادات: بعد ما تنظف سنانك، المطبخ مسكّر.' },
     { icon: '🍫', title: 'بدون حلويات وسناكات', kind: 'quit', days: 21, identity: 'أنا شخص بياكل لأنه جوعان مش لأنه زهقان', plan: 'لما بحس بالجوع بين الوجبات، باكل بروتين أو خضار', tip: 'جهّز سناك صحي جاهز بمكان واضح.' },
     { icon: '👟', title: '10,000 خطوة يومياً', kind: 'build', days: 30, identity: 'أنا شخص نشيط بيتحرك كل يوم', plan: 'بعد الغدا بطلع أمشي 20 دقيقة', tip: 'قاعدة الدقيقتين: إذا ما في وقت، البس صباطك واطلع 5 دقايق بس.' },
@@ -667,8 +668,8 @@
   // Today card: quick yes/no per active challenge for the date being edited.
   function chTodayCard(date) {
     var act = chList().filter(function (c) { return chActive(c, date); });
-    if (!act.length) return '<button class="card chcta" data-tab="challenges"><span>🎯</span><div><b>ابدأ تحدّي جديد</b><small>شهر بدون سكر؟ بدون خبز أبيض؟ اختار تحدّيك وتابعه كل يوم.</small></div></button>';
-    return '<section class="card" id="chToday"><h3><span>🎯 تحدّياتك اليوم</span><span class="sub">التزمت؟</span></h3><div class="list">' +
+    if (!act.length) return '<button class="card chcta" data-tab="challenges"><span>🎯</span><div><b>ابدأ عادة جديدة</b><small>عادة صغيرة كل يوم بتعمل فرق كبير. اختار عادتك وتابعها.</small></div></button>';
+    return '<section class="card" id="chToday"><h3><span>🎯 عاداتك اليوم</span><span class="sub">التزمت؟</span></h3><div class="list">' +
       act.map(function (c) {
         var v = c.log[date];
         return '<div class="chrow"><div class="chname"><span class="chic">' + c.icon + '</span><div><b>' + esc(c.title) + '</b><small>اليوم ' + num(chDayNum(c, date)) + ' من ' + num(c.days) + '</small></div></div>' +
@@ -679,7 +680,7 @@
   function chReportLines(date) {
     var act = chList().filter(function (c) { return chActive(c, date); });
     if (!act.length) return [];
-    return ['🎯 التحديات:'].concat(act.map(function (c) {
+    return ['🎯 العادات:'].concat(act.map(function (c) {
       var v = c.log[date];
       return '• ' + c.title + ' (يوم ' + chDayNum(c, date) + '/' + c.days + '): ' + (v === 1 ? '✅' : v === 0 ? '❌' : 'غير مسجّل');
     }));
@@ -688,10 +689,10 @@
     var from = ds[0], to = ds[ds.length - 1];
     var cs = chList().filter(function (c) { return !c.archived && c.start <= to && chEnd(c) >= from; });
     if (!cs.length) return [];
-    return ['🎯 التحديات:'].concat(cs.map(function (c) {
+    return ['🎯 العادات:'].concat(cs.map(function (c) {
       var inRange = ds.filter(function (d) { return d >= c.start && d <= chEnd(c) && d <= todayStr(); });
       var wins = inRange.filter(function (d) { return c.log[d] === 1; }).length;
-      return '• ' + c.title + ': ' + wins + '/' + inRange.length + ' يوم' + (todayStr() > chEnd(c) ? ' (خلص التحدي)' : ' · يوم ' + Math.min(chDayNum(c), c.days) + '/' + c.days);
+      return '• ' + c.title + ': ' + wins + '/' + inRange.length + ' يوم' + (todayStr() > chEnd(c) ? ' (خلصت المدة)' : ' · يوم ' + Math.min(chDayNum(c), c.days) + '/' + c.days);
     }));
   }
 
@@ -700,10 +701,10 @@
     var active = cs.filter(function (c) { return todayStr() <= chEnd(c); });
     var done = cs.filter(function (c) { return todayStr() > chEnd(c); });
     page.innerHTML =
-      '<section class="hero" style="min-height:190px"><div class="hero-bg outdoor"></div><div class="hero-c"><span class="pill">1% أحسن كل يوم</span><h2>التحديات</h2><div class="hi">العادات الصغيرة بتعمل نتائج كبيرة</div></div></section>' +
-      '<button class="btn" data-act="chNew">+ تحدّي جديد</button>' +
-      (active.length ? active.map(chCard).join('') : '<div class="card empty">ما عندك تحدّي شغّال. اختار تحدّي جاهز أو اعمل تحدّي خاص فيك.</div>') +
-      (done.length ? '<section class="card"><h3>تحديات خلصت 🏁</h3><div class="list">' + done.map(function (c) {
+      '<section class="hero"><div class="hero-bg"></div><div class="hero-c"><span class="pill">1% أحسن كل يوم</span><h2>العادات الذرية</h2><div class="hi">العادات الصغيرة بتعمل نتائج كبيرة</div></div></section>' +
+      '<button class="btn" data-act="chNew">+ عادة جديدة</button>' +
+      (active.length ? active.map(chCard).join('') : '<div class="card empty">ما عندك عادة شغّالة. اختار عادة جاهزة أو اعمل عادة خاصة فيك.</div>') +
+      (done.length ? '<section class="card"><h3>عادات خلصت مدتها 🏁</h3><div class="list">' + done.map(function (c) {
         var s = chStats(c);
         return '<button class="li dayrow" data-act="chOpen" data-id="' + c.id + '"><div><div class="v">' + c.icon + ' ' + esc(c.title) + '</div><div class="d">' + fmtDate(c.start) + ' · ' + num(c.days) + ' يوم</div></div><span class="score ' + scoreClass(s.rate) + '">' + num(s.rate + '%') + '</span></button>';
       }).join('') + '</div></section>' : '') +
@@ -726,17 +727,17 @@
 
   function chForm(p) {
     p = p || {};
-    openSheet('<h2>' + (p.id ? 'تعديل التحدي' : 'تحدّي جديد') + '</h2><form class="form" id="chf">' +
+    openSheet('<h2>' + (p.id ? 'تعديل العادة' : 'عادة جديدة') + '</h2><form class="form" id="chf">' +
       '<div class="field"><label>الأيقونة</label><div class="chips icons" data-chips="icon">' + CH_ICONS.map(function (i) { return chip(i, i, i === (p.icon || '🎯')); }).join('') + '</div></div>' +
-      field('اسم التحدي', '<input name="title" required maxlength="40" value="' + esc(p.title || '') + '" placeholder="مثلاً: شهر بدون سكر">') +
-      '<div class="field"><label>نوع التحدي</label>' + chips('kind', { quit: 'بدّي أترك عادة', build: 'بدّي أبني عادة' }, p.kind || 'quit') + '</div>' +
+      field('اسم العادة', '<input name="title" required maxlength="40" value="' + esc(p.title || '') + '" placeholder="مثلاً: شهر بدون سكر">') +
+      '<div class="field"><label>نوع العادة</label>' + chips('kind', { quit: 'بدّي أترك عادة', build: 'بدّي أبني عادة' }, p.kind || 'quit') + '</div>' +
       '<div class="field"><label>المدة (أيام)</label>' + chips('days', CH_DURATIONS, p.days || 30) + '</div>' +
       field('هويتك الجديدة', '<input name="identity" maxlength="80" value="' + esc(p.identity || '') + '" placeholder="أنا شخص ...">') +
       '<p class="hint">💡 كل مرة بتلتزم، عم تعطي صوت للشخص يلي بدك تصيره. ركّز على مين بدك تكون، مش بس على النتيجة.</p>' +
       field('خطتك: إمتى ووين وكيف؟', '<textarea name="plan" rows="2" maxlength="160" placeholder="لما ... رح ...">' + esc(p.plan || '') + '</textarea>') +
       '<p class="hint">💡 الناس يلي بيكتبوا خطة واضحة (رح أعمل كذا، إمتى، ووين) احتمال التزامهم أعلى بكتير.</p>' +
       field('تاريخ البداية', '<input name="start" type="date" required value="' + (p.start || todayStr()) + '">') +
-      '<button class="btn" type="submit">' + (p.id ? 'حفظ' : 'ابدأ التحدي 🚀') + '</button></form>', function (b) {
+      '<button class="btn" type="submit">' + (p.id ? 'حفظ' : 'ابدأ العادة 🚀') + '</button></form>', function (b) {
       var f = $('#chf', b); bindChips(f);
       f.addEventListener('submit', function (e) {
         e.preventDefault();
@@ -744,7 +745,7 @@
         if (!data.title) return;
         if (p.id) { var c = chList().filter(function (x) { return x.id === p.id; })[0]; Object.assign(c, data); }
         else chList().push(Object.assign({ id: Date.now().toString(36), log: {} }, data));
-        save(); closeSheet(); tab = 'challenges'; render(); toast(p.id ? 'تم الحفظ ✅' : 'بلّش التحدي! 💪');
+        save(); closeSheet(); tab = 'challenges'; render(); toast(p.id ? 'تم الحفظ ✅' : 'بلّشت العادة! 💪');
       });
     });
   }
@@ -752,9 +753,9 @@
 
   var CH_ACTIONS = {
     chNew: function () {
-      openSheet('<h2>اختار تحدّي</h2><div class="presets">' +
+      openSheet('<h2>اختار عادة</h2><div class="presets">' +
         CH_PRESETS.map(function (p, i) { return '<button class="preset" data-act="chPreset" data-i="' + i + '"><span>' + p.icon + '</span><b>' + p.title + '</b><small>' + p.days + ' يوم</small></button>'; }).join('') +
-        '<button class="preset custom" data-act="chCustom"><span>✍️</span><b>تحدّي خاص فيك</b><small>اكتبه بنفسك</small></button></div>');
+        '<button class="preset custom" data-act="chCustom"><span>✍️</span><b>عادة خاصة فيك</b><small>اكتبه بنفسك</small></button></div>');
     },
     chPreset: function (el) { var p = CH_PRESETS[+el.getAttribute('data-i')]; chForm({ icon: p.icon, title: p.title, kind: p.kind, days: p.days, identity: p.identity, plan: p.plan, tip: p.tip }); },
     chCustom: function () { chForm({}); },
@@ -766,7 +767,7 @@
       var s = chStats(c);
       if (c.log[d] === 1) toast(s.streak > 1 && s.streak % 7 === 0 ? '🔥 ' + s.streak + ' يوم ورا بعض! كمّل' : 'صوت جديد لهويتك الجديدة ✅');
       else if (c.log[d] === 0) toast('مش مشكلة. المهم لا تفوّت مرتين 💪');
-      if (d === chEnd(c) && c.log[d] === 1) toast('🏁 خلّصت التحدي! نسبة التزامك ' + s.rate + '%');
+      if (d === chEnd(c) && c.log[d] === 1) toast('🏁 خلّصت مدة العادة! نسبة التزامك ' + s.rate + '%');
       if (tab === 'today' && $('#chToday')) { $('#chToday').outerHTML = chTodayCard(d); return; }
       var y = window.scrollY; render(); window.scrollTo(0, y);
     },
@@ -781,15 +782,15 @@
         (c.plan ? '<div class="idbox"><small>خطتك</small><b>' + esc(c.plan) + '</b></div>' : '') +
         (c.tip ? '<div class="idbox tip"><small>نصيحة</small><b>' + esc(c.tip) + '</b></div>' : '') +
         '<div class="actions2"><button class="btn ghost" data-act="chEdit" data-id="' + c.id + '">تعديل</button><button class="btn ghost" data-act="chShare" data-id="' + c.id + '">ابعت للكوتش</button></div>' +
-        '<button class="btn danger" data-act="chDelete" data-id="' + c.id + '">حذف التحدي</button>');
+        '<button class="btn danger" data-act="chDelete" data-id="' + c.id + '">حذف العادة</button>');
     },
     chEdit: function (el) { var c = chById(el.getAttribute('data-id')); if (c) chForm(c); },
     chShare: function (el) {
       var c = chById(el.getAttribute('data-id')); if (!c) return; var s = chStats(c);
-      openExternal(waLink(['🎯 تحدّي: ' + c.title, '👤 ' + S.profile.name, '📅 اليوم ' + Math.min(chDayNum(c), c.days) + ' من ' + c.days, '✅ أيام ناجحة: ' + s.wins + '/' + s.elapsed + ' (' + s.rate + '%)', '🔥 السلسلة الحالية: ' + s.streak + ' · الأطول: ' + s.best, c.identity ? '🪪 ' + c.identity : ''].filter(Boolean).join('\n')));
+      openExternal(waLink(['🎯 عادة: ' + c.title, '👤 ' + S.profile.name, '📅 اليوم ' + Math.min(chDayNum(c), c.days) + ' من ' + c.days, '✅ أيام ناجحة: ' + s.wins + '/' + s.elapsed + ' (' + s.rate + '%)', '🔥 السلسلة الحالية: ' + s.streak + ' · الأطول: ' + s.best, c.identity ? '🪪 ' + c.identity : ''].filter(Boolean).join('\n')));
     },
     chDelete: function (el) {
-      if (!confirm('حذف التحدي وكل سجله؟')) return;
+      if (!confirm('حذف العادة وكل سجلها؟')) return;
       var id = el.getAttribute('data-id'); S.challenges = chList().filter(function (x) { return x.id !== id; }); save(); closeSheet(); render();
     }
   };
@@ -818,7 +819,7 @@
         '<div class="actions2"><button class="btn ghost" type="button" data-act="export">نسخة احتياطية</button><button class="btn ghost" type="button" data-act="import">استرجاع نسخة</button></div>' +
         '<button class="btn ghost" type="button" data-act="contact">تواصل مع الكوتش جورج</button>' +
         '<button class="btn danger" type="button" data-act="reset">مسح كل البيانات</button>' +
-        '<p class="muted" style="margin:0;font-size:12px;text-align:center">بياناتك محفوظة على هاد الجهاز فقط.<br>GM Progress v1.3 · George Mousa Online Coaching</p></form>', function (b) {
+        '<p class="muted" style="margin:0;font-size:12px;text-align:center">بياناتك محفوظة على هاد الجهاز فقط.<br>GM Progress v2.0 · George Mousa Online Coaching</p></form>', function (b) {
         var f = $('#sf', b); bindChips(f);
         f.addEventListener('submit', function (e) {
           e.preventDefault();
