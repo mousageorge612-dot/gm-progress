@@ -40,7 +40,7 @@
   }
 
   var GOALS = { cut: 'خسارة دهون', bulk: 'بناء عضل', recomp: 'شد وتنشيف', health: 'لياقة وصحة' };
-  var PLANS = { m1: 'باقة شهر', m3: 'باقة 3 أشهر', m6: 'باقة 6 أشهر', other: 'أخرى' };
+  var PLANS = { m1: 'أونلاين شهر', m3: 'أونلاين 3 أشهر', m6: 'أونلاين 6 أشهر', apex: 'برايفت GYM APEX', other: 'أخرى' };
   var TRAIN = { yes: 'نعم', no: 'لا', rest: 'يوم راحة' };
   var SLEEPQ = { bad: 'سيئة', ok: 'متوسطة', good: 'جيدة' };
   var ENERGY = { low: 'منخفضة', mid: 'متوسطة', high: 'عالية' };
@@ -94,16 +94,16 @@
   function render() {
     var app = $('#app');
     if (!S.profile) { app.innerHTML = onboardView(); bindOnboard(); return; }
-    var titles = { today: 'تسجيل اليوم', plan: 'برنامجي', challenges: 'العادات', report: 'تقدّمي' };
-    if (tab === 'history') tab = 'report';
+    var titles = { today: 'تسجيل اليوم', plan: 'برنامجي', report: 'تقدّمي' };
+    if (tab === 'history' || tab === 'challenges') tab = 'report';
     if (tab === 'plan' && !S.plan) tab = 'today';
     app.innerHTML =
       '<div class="shell">' +
       '<header class="topbar"><div class="t"><img src="assets/img/logo.png" alt="George Mousa"><div>' + titles[tab] + '<small class="en">GM PROGRESS</small></div></div>' +
       '<button class="iconbtn" data-act="settings" aria-label="الإعدادات">' + I.gear + '</button></header>' +
       '<main class="page" id="page"></main>' +
-      '<nav class="tabbar ' + (S.plan ? 'four' : 'three') + '">' + tabBtn('today', 'اليوم', I.today) + (S.plan ? tabBtn('plan', 'برنامجي', I.dumbbell) : '') + tabBtn('challenges', 'العادات', I.target) + tabBtn('report', 'تقدّمي', I.history) + '</nav></div>';
-    ({ today: todayView, plan: planView, challenges: challengesView, report: reportView })[tab]($('#page'));
+      '<nav class="tabbar ' + (S.plan ? 'three' : 'two') + '">' + tabBtn('today', 'اليوم', I.today) + (S.plan ? tabBtn('plan', 'برنامجي', I.dumbbell) : '') + tabBtn('report', 'تقدّمي', I.history) + '</nav></div>';
+    ({ today: todayView, plan: planView, report: reportView })[tab]($('#page'));
   }
   function tabBtn(k, t, ic) { return '<button class="tab' + (tab === k ? ' on' : '') + '" data-tab="' + k + '">' + ic + '<span>' + t + '</span></button>'; }
 
@@ -667,6 +667,7 @@
 
   // Today card: quick yes/no per active challenge for the date being edited.
   function chTodayCard(date) {
+    return ''; // habits live in the public GM Habits app; the clients app is tracking only
     var act = chList().filter(function (c) { return chActive(c, date); });
     if (!act.length) return '<button class="card chcta" data-tab="challenges"><span>🎯</span><div><b>ابدأ عادة جديدة</b><small>عادة صغيرة كل يوم بتعمل فرق كبير. اختار عادتك وتابعها.</small></div></button>';
     return '<section class="card" id="chToday"><h3><span>🎯 عاداتك اليوم</span><span class="sub">التزمت؟</span></h3><div class="list">' +
