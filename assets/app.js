@@ -1,5 +1,5 @@
 /* GM Progress — simple end-of-day check-in for George Mousa Online Coaching clients.
-   Data stays on the device (localStorage). Reports go to the coach on WhatsApp. */
+   Each client has an account; progress syncs to the cloud (Supabase) and is cached on the device. Reports go to the coach on WhatsApp. */
 (function () {
   'use strict';
 
@@ -15,7 +15,122 @@
     try { var d = JSON.parse(localStorage.getItem(KEY)); if (d && typeof d === 'object') return Object.assign(blank(), d); } catch (e) {}
     return blank();
   }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('تعذّر الحفظ'); } }
+  function save() {
+    S._t = Date.now();
+    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('تعذّر الحفظ'); }
+    Cloud.schedule();
+  }
+
+  /* ---------------- cloud account + sync (Supabase: Auth + one row per client) ----------------
+     Each client logs in with a username + password. The whole state is kept in table
+     public.progress (one jsonb row per user, protected by RLS). The device copy is a cache:
+     if the phone loses it (iOS can), logging in again brings everything back. */
+  var CLOUD_URL = window.GM_CLOUD_URL || 'https://SUPABASE_PROJECT.supabase.co';
+  var CLOUD_KEY = window.GM_CLOUD_KEY || 'SUPABASE_ANON_KEY';
+  var AUTH_KEY = 'gm_progress_auth';
+  var Cloud = (function () {
+    var on = CLOUD_URL.indexOf('SUPABASE_PROJECT') < 0;
+    var A = null; try { A = JSON.parse(localStorage.getItem(AUTH_KEY)); } catch (e) {}
+    var timer = null, busy = false, dirty = false;
+    function storeAuth(a) { A = a; try { if (a) localStorage.setItem(AUTH_KEY, JSON.stringify(a)); else localStorage.removeItem(AUTH_KEY); } catch (e) {} }
+    function emailOf(u) { return u + '@clients.georgemousa.com'; }
+    function cleanUser(u) { return String(u || '').trim().toLowerCase(); }
+    function req(path, opt) {
+      opt = opt || {};
+      var h = { apikey: CLOUD_KEY, 'Content-Type': 'application/json' };
+      if (opt.token) h.Authorization = 'Bearer ' + opt.token;
+      Object.assign(h, opt.headers || {});
+      return fetch(CLOUD_URL + path, { method: opt.method || 'GET', headers: h, body: opt.body ? JSON.stringify(opt.body) : undefined, cache: 'no-store' })
+        .then(function (r) { return r.text().then(function (t) { var j = null; try { j = t ? JSON.parse(t) : null; } catch (e) {} if (!r.ok) { var err = new Error((j && (j.error_description || j.msg || j.message || j.error)) || ('HTTP ' + r.status)); err.status = r.status; err.body = j; throw err; } return j; }); });
+    }
+    function session(j, username) {
+      storeAuth({ token: j.access_token, refresh: j.refresh_token, exp: Date.now() + (j.expires_in || 3600) * 1000 - 60000, uid: j.user && j.user.id, user: username || (A && A.user) });
+    }
+    function token() {
+      if (!A) return Promise.reject(new Error('no session'));
+      if (Date.now() < A.exp) return Promise.resolve(A.token);
+      return req('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: { refresh_token: A.refresh } })
+        .then(function (j) { session(j); return A.token; })
+        .catch(function (e) { if (e.status === 400 || e.status === 401) { storeAuth(null); render(); } throw e; });
+    }
+    function pullRow() {
+      return token().then(function (t) { return req('/rest/v1/progress?select=state,updated_at&user_id=eq.' + A.uid, { token: t }); })
+        .then(function (rows) { return rows && rows[0] ? rows[0].state : null; });
+    }
+    function push() {
+      if (!on || !A) return Promise.resolve();
+      if (busy) { dirty = true; return Promise.resolve(); }
+      busy = true; dirty = false;
+      var body = { user_id: A.uid, username: A.user, name: S.profile ? S.profile.name : null, state: S, updated_at: new Date().toISOString() };
+      return token().then(function (t) {
+        return req('/rest/v1/progress?on_conflict=user_id', { method: 'POST', token: t, body: body, headers: { Prefer: 'resolution=merge-duplicates,return=minimal' } });
+      }).then(function () { try { localStorage.removeItem(KEY + '_pending'); } catch (e) {} },
+        function () { try { localStorage.setItem(KEY + '_pending', '1'); } catch (e) {} })
+        .then(function () { busy = false; if (dirty) push(); });
+    }
+    // union of two states: the newer one wins, but days/logs that only exist in the other are kept
+    function merge(a, b) {
+      if (!a) return b; if (!b) return a;
+      var n = (a._t || 0) >= (b._t || 0) ? a : b, o = n === a ? b : a, r = JSON.parse(JSON.stringify(n));
+      ['days', 'plog'].forEach(function (k) { if (o[k]) { r[k] = r[k] || {}; Object.keys(o[k]).forEach(function (d) { if (!(d in r[k])) r[k][d] = o[k][d]; }); } });
+      if (!r.profile && o.profile) r.profile = o.profile;
+      if (!r.plan && o.plan) r.plan = o.plan;
+      if ((!r.checkins || !r.checkins.length) && o.checkins) r.checkins = o.checkins;
+      return r;
+    }
+    function adopt(remote) {
+      var local = (S.profile || S.plan || Object.keys(S.days || {}).length) ? S : null;
+      S = Object.assign(blank(), merge(local, remote) || blank());
+      try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+    }
+    function afterLogin(j, username) {
+      session(j, username);
+      return pullRow().then(function (remote) { adopt(remote); return push(); });
+    }
+    function authErr(e) {
+      var m = (e && e.message || '').toLowerCase();
+      if (m.indexOf('already') >= 0 || m.indexOf('registered') >= 0) return 'اسم المستخدم محجوز، اختار اسم تاني';
+      if (m.indexOf('invalid login') >= 0 || m.indexOf('invalid') >= 0 && m.indexOf('credential') >= 0) return 'اسم المستخدم أو كلمة المرور غلط';
+      if (m.indexOf('password') >= 0) return 'كلمة المرور لازم تكون 6 أحرف أو أكتر';
+      if (e && e.status === 429) return 'محاولات كتير، جرّب بعد شوي';
+      if (e instanceof TypeError || !navigator.onLine) return 'ما في إنترنت. اتصل وجرّب مرة تانية';
+      return 'صار خطأ، جرّب مرة تانية';
+    }
+    return {
+      on: on,
+      get user() { return A && A.user; },
+      signedIn: function () { return !!A; },
+      schedule: function () { if (!on || !A) return; try { localStorage.setItem(KEY + '_pending', '1'); } catch (e) {} clearTimeout(timer); timer = setTimeout(push, 1200); },
+      flush: function () { clearTimeout(timer); return push(); },
+      login: function (u, pw) {
+        u = cleanUser(u);
+        return req('/auth/v1/token?grant_type=password', { method: 'POST', body: { email: emailOf(u), password: pw } }).then(function (j) { return afterLogin(j, u); });
+      },
+      signup: function (u, pw) {
+        u = cleanUser(u);
+        return req('/auth/v1/signup', { method: 'POST', body: { email: emailOf(u), password: pw, data: { username: u } } }).then(function (j) {
+          if (!j || !j.access_token) throw new Error('confirm');
+          return afterLogin(j, u);
+        });
+      },
+      // on app open: bring down anything newer from the server, then upload what is waiting
+      sync: function () {
+        if (!on || !A) return Promise.resolve();
+        return pullRow().then(function (remote) {
+          var before = JSON.stringify(S); adopt(remote);
+          if (JSON.stringify(S) !== before) render();
+          var pending = false; try { pending = !!localStorage.getItem(KEY + '_pending'); } catch (e) {}
+          if (!remote || pending || (S._t || 0) > (remote._t || 0)) return push();
+        }).catch(function () {});
+      },
+      logout: function () {
+        var done = function () { storeAuth(null); S = blank(); try { localStorage.removeItem(KEY); localStorage.removeItem(KEY + '_pending'); } catch (e) {} render(); };
+        return push().then(done, done);
+      },
+      validUser: function (u) { return /^[a-z0-9._-]{3,24}$/.test(cleanUser(u)); },
+      authErr: authErr
+    };
+  })();
 
   /* ---------------- helpers ---------------- */
   function pad(n) { return (n < 10 ? '0' : '') + n; }
@@ -93,6 +208,7 @@
 
   function render() {
     var app = $('#app');
+    if (Cloud.on && !Cloud.signedIn()) { app.innerHTML = authView(); bindAuth(); return; }
     if (!S.profile) { app.innerHTML = onboardView(); bindOnboard(); return; }
     var titles = { today: 'تسجيل اليوم', plan: 'برنامجي', report: 'تقدّمي' };
     if (tab === 'history' || tab === 'challenges') tab = 'report';
@@ -131,6 +247,44 @@
     });
   }
   function chipVal(root, name) { var c = $('[data-chips="' + name + '"] .chip.on', root); return c ? c.getAttribute('data-v') : null; }
+
+  /* ---------------- login / sign up ---------------- */
+  var authMode = 'login';
+  function authView() {
+    var hasLocal = !!(S.profile || Object.keys(S.days || {}).length);
+    var su = authMode === 'signup';
+    return '<div class="onboard auth"><div class="onboard-bg"></div><div class="onboard-inner">' +
+      '<div class="brand"><img src="assets/img/logo.png" alt="George Mousa"></div>' +
+      '<h1>' + (su ? 'افتح حسابك<br>مع <span>George Mousa</span>' : 'أهلاً فيك<br>مع <span>George Mousa</span>') + '</h1>' +
+      '<p class="lead">' + (su ? 'تقدّمك بينحفظ بحسابك، وبيرجع كامل إذا غيّرت جوالك أو انمسح التطبيق.' : 'سجّل دخولك ليرجعلك كل تقدّمك.') + '</p>' +
+      (hasLocal ? '<div class="install ok">📲 لقينا سجل محفوظ على هاد الجهاز. ' + (su ? 'رح ينحفظ بحسابك الجديد.' : 'رح ينضم لحسابك.') + '</div>' : '') +
+      '<form class="form" id="auth" style="margin-top:16px" autocomplete="on">' +
+      field('اسم المستخدم', '<input name="u" required dir="ltr" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="username" placeholder="مثلاً robert" value="' + esc(Cloud.user || '') + '">') +
+      field('كلمة المرور', '<input name="pw" required type="password" dir="ltr" minlength="6" autocomplete="' + (su ? 'new-password' : 'current-password') + '" placeholder="6 أحرف أو أكتر">') +
+      (su ? field('أعد كلمة المرور', '<input name="pw2" required type="password" dir="ltr" minlength="6" autocomplete="new-password">') : '') +
+      '<p class="autherr" id="autherr" hidden></p>' +
+      '<button class="btn" type="submit">' + (su ? 'افتح الحساب' : 'دخول') + '</button>' +
+      '<button class="btn ghost" type="button" data-act="authMode">' + (su ? 'عندي حساب، بدي فوت' : 'ما عندي حساب، بدي افتح حساب') + '</button>' +
+      (su ? '' : '<button class="linkbtn" type="button" data-act="forgot">نسيت كلمة المرور؟</button>') +
+      '</form></div></div>';
+  }
+  function bindAuth() {
+    var f = $('#auth'), err = $('#autherr');
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var u = f.u.value, pw = f.pw.value, b = $('button[type=submit]', f);
+      var fail = function (m) { err.textContent = m; err.hidden = false; b.disabled = false; b.textContent = authMode === 'signup' ? 'افتح الحساب' : 'دخول'; };
+      if (!Cloud.validUser(u)) return fail('اسم المستخدم: أحرف إنكليزية صغيرة أو أرقام (3 لـ 24)، بدون مسافات');
+      if (pw.length < 6) return fail('كلمة المرور لازم تكون 6 أحرف أو أكتر');
+      if (authMode === 'signup' && pw !== f.pw2.value) return fail('كلمتين المرور مش متطابقين');
+      err.hidden = true; b.disabled = true; b.textContent = '...';
+      (authMode === 'signup' ? Cloud.signup(u, pw) : Cloud.login(u, pw)).then(function () {
+        tab = 'today'; editDate = todayStr(); render();
+        toast(S.profile ? 'أهلاً ' + S.profile.name + ' 💪 تقدّمك محفوظ' : 'تم فتح الحساب ✅');
+        if (S.plan) fetchPlan(S.plan.id, true);
+      }, function (e) { fail(Cloud.authErr(e)); });
+    });
+  }
 
   /* ---------------- onboarding ---------------- */
   function onboardView() {
@@ -819,8 +973,8 @@
         (S.plan ? '<button class="btn ghost" type="button" data-act="planRefresh">🔄 تحديث برنامجي</button>' : '<button class="btn ghost" type="button" data-act="planCode">📋 ضيف كود البرنامج</button>') +
         '<div class="actions2"><button class="btn ghost" type="button" data-act="export">نسخة احتياطية</button><button class="btn ghost" type="button" data-act="import">استرجاع نسخة</button></div>' +
         '<button class="btn ghost" type="button" data-act="contact">تواصل مع الكوتش جورج</button>' +
-        '<button class="btn danger" type="button" data-act="reset">مسح كل البيانات</button>' +
-        '<p class="muted" style="margin:0;font-size:12px;text-align:center">بياناتك محفوظة على هاد الجهاز فقط.<br>GM Progress v2.0 · George Mousa Online Coaching</p></form>', function (b) {
+        (Cloud.signedIn() ? '<button class="btn ghost" type="button" data-act="logout">تسجيل خروج (' + esc(Cloud.user) + ')</button>' : '<button class="btn danger" type="button" data-act="reset">مسح كل البيانات</button>') +
+        '<p class="muted" style="margin:0;font-size:12px;text-align:center">' + (Cloud.signedIn() ? '☁️ تقدّمك محفوظ بحسابك <b dir="ltr">' + esc(Cloud.user) + '</b>.' : 'بياناتك محفوظة على هاد الجهاز فقط.') + '<br>GM Progress v2.1 · George Mousa Online Coaching</p></form>', function (b) {
         var f = $('#sf', b); bindChips(f);
         f.addEventListener('submit', function (e) {
           e.preventDefault();
@@ -844,6 +998,12 @@
         r.readAsText(file);
       });
     },
+    logout: function () {
+      if (!confirm('بدك تطلع من حسابك؟ تقدّمك بيضل محفوظ وبيرجع لما تفوت.')) return;
+      closeSheet(); Cloud.logout();
+    },
+    authMode: function () { authMode = authMode === 'signup' ? 'login' : 'signup'; render(); },
+    forgot: function () { openExternal(waLink('مرحبا كوتش جورج، نسيت كلمة المرور تبع تطبيق GM Progress. اسم المستخدم: ' + (($('#auth') || {}).u ? $('#auth').u.value : ''))); },
     reset: function () {
       if (!confirm('متأكد؟ رح ينمسح كل سجلك.')) return;
       S = blank(); save(); closeSheet(); render();
@@ -861,6 +1021,9 @@
 
   var codeFromUrl = planCodeFromUrl();
   render();
+  Cloud.sync();
+  window.addEventListener('online', function () { Cloud.sync(); });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') Cloud.flush(); else Cloud.sync(); });
   if (codeFromUrl) fetchPlan(codeFromUrl);
   else if (S.plan) fetchPlan(S.plan.id, true);
   if ('serviceWorker' in navigator && location.protocol === 'https:' && !IS_ANDROID_APP) {

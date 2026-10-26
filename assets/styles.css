@@ -291,3 +291,6 @@ img{display:block;max-width:100%}
 .scorebar .ring{grid-column:1/-1}
 .scorebar .btn{margin:0;font-size:14px;padding-left:8px;padding-right:8px}
 .tabbar.two{grid-template-columns:repeat(2,1fr)}
+.autherr{margin:0;color:#ff6b6b;font-size:13px;font-weight:700}
+.linkbtn{background:none;border:0;color:var(--soft);font:inherit;font-size:13px;text-decoration:underline;padding:6px;cursor:pointer}
+.onboard.auth h1{margin-top:12vh}
