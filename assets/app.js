@@ -10,7 +10,10 @@
 
   /* ---------------- storage ---------------- */
   function blank() { return { profile: null, days: {}, challenges: [] }; }
+  // George 2026-10-26: the clients app is tracking only (daily / weekly / monthly). Coach plans are not shown in the app.
+  var PLAN_ON = false;
   var S = load();
+  if (!PLAN_ON) delete S.plan;
   function load() {
     try { var d = JSON.parse(localStorage.getItem(KEY)); if (d && typeof d === 'object') return Object.assign(blank(), d); } catch (e) {}
     return blank();
@@ -81,6 +84,7 @@
     function adopt(remote) {
       var local = (S.profile || S.plan || Object.keys(S.days || {}).length) ? S : null;
       S = Object.assign(blank(), merge(local, remote) || blank());
+      if (!PLAN_ON) delete S.plan;
       try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
     }
     function afterLogin(j, username) {
@@ -448,6 +452,7 @@
     return null;
   }
   function fetchPlan(id, quiet) {
+    if (!PLAN_ON) return;
     id = String(id || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
     if (!id) return;
     fetch(PLAN_BASE + id + '.json', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (p) {
@@ -970,11 +975,11 @@
         '<div class="row2">' + field('هدف الماء (لتر)', '<input name="waterTarget" type="number" step="0.5" min="1" max="6" required value="' + p.waterTarget + '">') +
         field('الباقة', '<select name="plan">' + Object.keys(PLANS).map(function (k) { return '<option value="' + k + '"' + (k === p.plan ? ' selected' : '') + '>' + PLANS[k] + '</option>'; }).join('') + '</select>') + '</div>' +
         '<button class="btn" type="submit">حفظ</button>' +
-        (S.plan ? '<button class="btn ghost" type="button" data-act="planRefresh">🔄 تحديث برنامجي</button>' : '<button class="btn ghost" type="button" data-act="planCode">📋 ضيف كود البرنامج</button>') +
+        (!PLAN_ON ? '' : S.plan ? '<button class="btn ghost" type="button" data-act="planRefresh">🔄 تحديث برنامجي</button>' : '<button class="btn ghost" type="button" data-act="planCode">📋 ضيف كود البرنامج</button>') +
         '<div class="actions2"><button class="btn ghost" type="button" data-act="export">نسخة احتياطية</button><button class="btn ghost" type="button" data-act="import">استرجاع نسخة</button></div>' +
         '<button class="btn ghost" type="button" data-act="contact">تواصل مع الكوتش جورج</button>' +
         (Cloud.signedIn() ? '<button class="btn ghost" type="button" data-act="logout">تسجيل خروج (' + esc(Cloud.user) + ')</button>' : '<button class="btn danger" type="button" data-act="reset">مسح كل البيانات</button>') +
-        '<p class="muted" style="margin:0;font-size:12px;text-align:center">' + (Cloud.signedIn() ? '☁️ تقدّمك محفوظ بحسابك <b dir="ltr">' + esc(Cloud.user) + '</b>.' : 'بياناتك محفوظة على هاد الجهاز فقط.') + '<br>GM Progress v2.1 · George Mousa Online Coaching</p></form>', function (b) {
+        '<p class="muted" style="margin:0;font-size:12px;text-align:center">' + (Cloud.signedIn() ? '☁️ تقدّمك محفوظ بحسابك <b dir="ltr">' + esc(Cloud.user) + '</b>.' : 'بياناتك محفوظة على هاد الجهاز فقط.') + '<br>GM Progress v2.2 · George Mousa Online Coaching</p></form>', function (b) {
         var f = $('#sf', b); bindChips(f);
         f.addEventListener('submit', function (e) {
           e.preventDefault();
