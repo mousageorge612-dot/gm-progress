@@ -294,3 +294,4 @@ img{display:block;max-width:100%}
 .autherr{margin:0;color:#ff6b6b;font-size:13px;font-weight:700}
 .linkbtn{background:none;border:0;color:var(--soft);font:inherit;font-size:13px;text-decoration:underline;padding:6px;cursor:pointer}
 .onboard.auth h1{margin-top:12vh}
+.tabbar.four{grid-template-columns:repeat(4,1fr)}

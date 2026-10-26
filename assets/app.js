@@ -214,16 +214,16 @@
     var app = $('#app');
     if (Cloud.on && !Cloud.signedIn()) { app.innerHTML = authView(); bindAuth(); return; }
     if (!S.profile) { app.innerHTML = onboardView(); bindOnboard(); return; }
-    var titles = { today: 'تسجيل اليوم', plan: 'برنامجي', report: 'تقدّمي' };
-    if (tab === 'history' || tab === 'challenges') tab = 'report';
+    var titles = { today: 'تسجيل اليوم', plan: 'برنامجي', challenges: 'التحديات', report: 'تقدّمي' };
+    if (tab === 'history') tab = 'report';
     if (tab === 'plan' && !S.plan) tab = 'today';
     app.innerHTML =
       '<div class="shell">' +
       '<header class="topbar"><div class="t"><img src="assets/img/logo.png" alt="George Mousa"><div>' + titles[tab] + '<small class="en">GM PROGRESS</small></div></div>' +
       '<button class="iconbtn" data-act="settings" aria-label="الإعدادات">' + I.gear + '</button></header>' +
       '<main class="page" id="page"></main>' +
-      '<nav class="tabbar ' + (S.plan ? 'three' : 'two') + '">' + tabBtn('today', 'اليوم', I.today) + (S.plan ? tabBtn('plan', 'برنامجي', I.dumbbell) : '') + tabBtn('report', 'تقدّمي', I.history) + '</nav></div>';
-    ({ today: todayView, plan: planView, report: reportView })[tab]($('#page'));
+      '<nav class="tabbar ' + (S.plan ? 'four' : 'three') + '">' + tabBtn('today', 'اليوم', I.today) + (S.plan ? tabBtn('plan', 'برنامجي', I.dumbbell) : '') + tabBtn('challenges', 'التحديات', I.target) + tabBtn('report', 'تقدّمي', I.history) + '</nav></div>';
+    ({ today: todayView, plan: planView, challenges: challengesView, report: reportView })[tab]($('#page'));
   }
   function tabBtn(k, t, ic) { return '<button class="tab' + (tab === k ? ' on' : '') + '" data-tab="' + k + '">' + ic + '<span>' + t + '</span></button>'; }
 
@@ -826,7 +826,6 @@
 
   // Today card: quick yes/no per active challenge for the date being edited.
   function chTodayCard(date) {
-    return ''; // habits live in the public GM Habits app; the clients app is tracking only
     var act = chList().filter(function (c) { return chActive(c, date); });
     if (!act.length) return '<button class="card chcta" data-tab="challenges"><span>🎯</span><div><b>ابدأ عادة جديدة</b><small>عادة صغيرة كل يوم بتعمل فرق كبير. اختار عادتك وتابعها.</small></div></button>';
     return '<section class="card" id="chToday"><h3><span>🎯 عاداتك اليوم</span><span class="sub">التزمت؟</span></h3><div class="list">' +
@@ -979,7 +978,7 @@
         '<div class="actions2"><button class="btn ghost" type="button" data-act="export">نسخة احتياطية</button><button class="btn ghost" type="button" data-act="import">استرجاع نسخة</button></div>' +
         '<button class="btn ghost" type="button" data-act="contact">تواصل مع الكوتش جورج</button>' +
         (Cloud.signedIn() ? '<button class="btn ghost" type="button" data-act="logout">تسجيل خروج (' + esc(Cloud.user) + ')</button>' : '<button class="btn danger" type="button" data-act="reset">مسح كل البيانات</button>') +
-        '<p class="muted" style="margin:0;font-size:12px;text-align:center">' + (Cloud.signedIn() ? '☁️ تقدّمك محفوظ بحسابك <b dir="ltr">' + esc(Cloud.user) + '</b>.' : 'بياناتك محفوظة على هاد الجهاز فقط.') + '<br>GM Progress v2.2 · George Mousa Online Coaching</p></form>', function (b) {
+        '<p class="muted" style="margin:0;font-size:12px;text-align:center">' + (Cloud.signedIn() ? '☁️ تقدّمك محفوظ بحسابك <b dir="ltr">' + esc(Cloud.user) + '</b>.' : 'بياناتك محفوظة على هاد الجهاز فقط.') + '<br>GM Progress v2.3 · George Mousa Online Coaching</p></form>', function (b) {
         var f = $('#sf', b); bindChips(f);
         f.addEventListener('submit', function (e) {
           e.preventDefault();

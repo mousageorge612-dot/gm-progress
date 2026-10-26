@@ -20,7 +20,7 @@
 .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.filters button{border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:13px;background:var(--surface)}.filters button.on{background:var(--gold);color:#000;border-color:var(--gold);font-weight:700}
 .list{display:grid;gap:10px}
 .cl{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:14px;cursor:pointer;display:grid;grid-template-columns:1fr auto;gap:8px 12px}
-.cl.alert{border-color:rgba(255,91,91,.55)}.cl.warn{border-color:rgba(255,184,0,.5)}
+.cl.lv-alert{border-color:rgba(255,91,91,.55)}.cl.lv-warn{border-color:rgba(255,184,0,.5)}
 .cl .nm{font-weight:900;font-size:17px}.cl .sub{color:var(--muted);font-size:12.5px}
 .cl .sc{font-size:26px;font-weight:900;text-align:center;line-height:1}.cl .sc small{display:block;font-size:11px;color:var(--muted);font-weight:400}
 .stats{grid-column:1/-1;display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
@@ -34,6 +34,8 @@ i.good{background:var(--green)}i.mid{background:var(--gold)}i.low{background:var
 .chart{width:100%;height:140px;background:var(--surface2);border-radius:14px;margin:8px 0}
 .empty{color:var(--muted);text-align:center;padding:30px}
 .kpi b .num{font-size:28px;font-weight:900;color:inherit}.st b .num{font-size:16px;font-weight:900;color:inherit}.cl .sc .num{font-size:26px;font-weight:900}
+.chs{grid-column:1/-1;display:grid;gap:4px}.chl{display:flex;justify-content:space-between;gap:8px;align-items:center;background:var(--surface2);border-radius:12px;padding:6px 10px;font-size:13px;flex-wrap:wrap}.chl small{color:var(--muted)}
+.chn{display:grid;grid-template-columns:repeat(15,1fr);gap:3px;margin-top:6px;direction:rtl}.chn i{aspect-ratio:1;border-radius:4px;background:#1d1d1d;display:block}.chn i.skip{background:#3a1d1d}
 @media (max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}.stats{grid-template-columns:repeat(3,1fr)}}
 </style>
 </head>
@@ -85,6 +87,17 @@ i.good{background:var(--green)}i.mid{background:var(--gold)}i.low{background:var
       Math.min(1, (d.water || 0) / (wt || 3)) * 10 + Math.min(1, (+d.sleep || 0) / 7) * 10 + (LEVEL[d.energy] || 0) * 7.5 + (LEVEL[d.mood] || 0) * 7.5;
     return Math.round(s);
   }
+  /* challenges (same rules as the clients app) */
+  function chEnd(c) { return addDays(c.start, c.days - 1); }
+  function chStats(c) {
+    var t = today(), last = t < chEnd(c) ? t : chEnd(c), el = Math.max(0, diffDays(c.start, last) + 1), wins = 0, d, log = c.log || {};
+    for (var i = 0; i < el; i++) { if (log[addDays(c.start, i)] === 1) wins++; }
+    var st = 0; d = last; if (log[d] !== 1 && log[d] !== 0) d = addDays(d, -1);
+    while (d >= c.start && log[d] === 1) { st++; d = addDays(d, -1); }
+    var y = addDays(t, -1);
+    return { day: Math.min(c.days, el), wins: wins, rate: el ? Math.round(wins / el * 100) : 0, streak: st, done: t > chEnd(c),
+      missedY: y >= c.start && log[y] !== 1 && t <= chEnd(c) && c.start < t, todayV: log[t] };
+  }
   function analyse(r) {
     var S = r.state || {}, days = S.days || {}, p = S.profile || {}, wt = p.waterTarget || 3;
     var keys = Object.keys(days).sort(), last = keys[keys.length - 1] || null;
@@ -104,9 +117,13 @@ i.good{background:var(--green)}i.mid{background:var(--gold)}i.low{background:var
       relapse7: l7.filter(function (k) { return days[k].relapse; }).length,
       wLast: weights.length ? weights[weights.length - 1].w : null,
       wDelta: w30.length > 1 ? Math.round((w30[w30.length - 1].w - w30[0].w) * 10) / 10 : null,
-      weights: weights, r14: range(14)
+      weights: weights, r14: range(14),
+      ch: (S.challenges || []).filter(function (c) { return !c.archived && c.start <= today(); }).map(function (c) { return { c: c, s: chStats(c) }; })
+        .sort(function (x, y) { return (x.s.done ? 1 : 0) - (y.s.done ? 1 : 0); })
     };
-    a.level = a.since == null || a.since >= 3 || (a.avg7 != null && a.avg7 < 55) ? 'alert' : a.since >= 2 || (a.avg7 != null && a.avg7 < 75) || a.relapse7 >= 2 ? 'warn' : 'ok';
+    a.chActive = a.ch.filter(function (x) { return !x.s.done; });
+    a.chMissed = a.chActive.filter(function (x) { return x.s.missedY; }).length;
+    a.level = a.since == null || a.since >= 3 || (a.avg7 != null && a.avg7 < 55) ? 'alert' : a.since >= 2 || (a.avg7 != null && a.avg7 < 75) || a.relapse7 >= 2 || a.chMissed ? 'warn' : 'ok';
     return a;
   }
 
@@ -165,14 +182,20 @@ i.good{background:var(--green)}i.mid{background:var(--gold)}i.low{background:var
   function lastTxt(a) { return a.since == null ? 'ما سجّل أبداً' : a.since === 0 ? 'سجّل اليوم' : a.since === 1 ? 'آخر تسجيل مبارح' : 'آخر تسجيل من ' + a.since + ' أيام'; }
   function card(a) {
     var tag = a.level === 'alert' ? '<span class="tag r">بحاجة متابعة</span>' : a.level === 'warn' ? '<span class="tag y">انتبه</span>' : '<span class="tag g">ملتزم</span>';
-    return '<div class="cl ' + a.level + '" data-u="' + esc(a.r.user_id) + '"><div><div class="nm">' + esc(a.p.name || a.r.username) + tag + '</div>' +
+    return '<div class="cl lv-' + a.level + '" data-u="' + esc(a.r.user_id) + '"><div><div class="nm">' + esc(a.p.name || a.r.username) + tag + '</div>' +
       '<div class="sub"><span dir="ltr">@' + esc(a.r.username) + '</span> · ' + (PLANS[a.p.plan] || '') + ' · ' + (GOALS[a.p.goal] || '') + (a.S.plan ? ' · 📋 ' + esc(a.S.plan.program || 'برنامج') : '') + '</div>' +
       '<div class="sub ' + (a.since == null || a.since >= 2 ? 'low' : '') + '">' + lastTxt(a) + '</div></div>' +
       '<div class="sc ' + (a.avg7 == null ? '' : cls(a.avg7)) + '">' + (a.avg7 == null ? '-' : num(a.avg7 + '%')) + '<small>آخر 7 أيام</small></div>' +
       '<div class="stats">' +
       st(a.logged7 + '/7', 'أيام سجّلها') + st(a.streak, 'سلسلة') + st(a.trained7, 'تمارين') + st(a.nut7 == null ? '-' : a.nut7 + '%', 'التغذية') +
       st(a.relapse7, 'انتكاسات', a.relapse7 ? 'low' : '') + st(a.wLast == null ? '-' : a.wLast + (a.wDelta != null ? ' (' + (a.wDelta > 0 ? '+' : '') + a.wDelta + ')' : ''), 'الوزن كغ') + '</div>' +
+      (a.chActive.length ? '<div class="chs">' + a.chActive.map(chLine).join('') + '</div>' : '') +
       '<div class="dots" title="آخر 14 يوم">' + a.r14.map(function (d) { var x = a.days[d]; return '<i class="' + (x ? cls(score(x, a.wt)) : '') + '" title="' + d + '"></i>'; }).join('') + '</div></div>';
+  }
+  function chLine(x) {
+    var c = x.c, s = x.s, k = cls(s.rate);
+    return '<div class="chl"><span>' + esc(c.icon || '🎯') + ' <b>' + esc(c.title) + '</b> <small>يوم ' + num(s.day + '/' + c.days) + '</small></span>' +
+      '<span><b class="' + k + '">' + num(s.rate + '%') + '</b> <small>· سلسلة ' + num(s.streak) + '</small>' + (s.missedY ? ' <span class="tag r">فوّت مبارح</span>' : s.todayV === 1 ? ' <span class="tag g">✓ اليوم</span>' : '') + '</span></div>';
   }
   function st(v, l, c) { return '<div class="st"><b class="' + (c || '') + '">' + num(v) + '</b><span>' + l + '</span></div>'; }
 
@@ -192,6 +215,10 @@ i.good{background:var(--green)}i.mid{background:var(--gold)}i.low{background:var
       '<div class="stats" style="margin:10px 0">' + st(a.avg7 == null ? '-' : a.avg7 + '%', 'التزام 7 أيام', a.avg7 == null ? '' : cls(a.avg7)) + st(a.avg30 == null ? '-' : a.avg30 + '%', 'التزام 30 يوم', a.avg30 == null ? '' : cls(a.avg30)) + st(a.logged30 + '/30', 'أيام سجّلها') + st(a.streak, 'سلسلة') + st(a.cardio7, 'كارديو') + st(a.relapse7, 'انتكاسات') + '</div>' +
       (a.weights.length > 1 ? '<b>الوزن</b>' + chart(a.weights.slice(-30)) : '') +
       '<b>آخر 14 يوم</b><table><tr><th>اليوم</th><th>النتيجة</th><th>تمرين</th><th>كارديو</th><th>تغذية</th><th>انتكاس</th><th>وزن</th></tr>' + rowsH + '</table>' +
+      (a.ch.length ? '<b style="display:block;margin-top:10px">🎯 التحديات</b>' + a.ch.map(function (x) {
+        var c = x.c, cells = ''; for (var i = 0; i < c.days; i++) { var d = addDays(c.start, i), v = (c.log || {})[d]; cells += '<i class="' + (v === 1 ? 'good' : v === 0 ? 'low' : d < today() ? 'skip' : '') + '" title="' + d + '"></i>'; }
+        return '<div class="note">' + chLine(x) + (c.identity ? '<div class="muted" style="font-size:12px">الهوية: ' + esc(c.identity) + '</div>' : '') + (x.s.done ? '<div class="muted" style="font-size:12px">خلصت المدة: نجح ' + x.s.wins + ' من ' + c.days + ' يوم</div>' : '') + '<div class="chn">' + cells + '</div></div>';
+      }).join('') : '') +
       (ci ? '<b style="display:block;margin-top:10px">المتابعات الأسبوعية</b>' + ci : '') +
       (notes ? '<b style="display:block;margin-top:10px">ملاحظاته</b>' + notes : '') + '</div>';
   }
