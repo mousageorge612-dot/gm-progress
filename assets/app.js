@@ -25,11 +25,11 @@
      Each client logs in with a username + password. The whole state is kept in table
      public.progress (one jsonb row per user, protected by RLS). The device copy is a cache:
      if the phone loses it (iOS can), logging in again brings everything back. */
-  var CLOUD_URL = window.GM_CLOUD_URL || 'https://SUPABASE_PROJECT.supabase.co';
-  var CLOUD_KEY = window.GM_CLOUD_KEY || 'SUPABASE_ANON_KEY';
+  var CLOUD_URL = window.GM_CLOUD_URL || 'https://lwnjdcwlxbanjbkmbvoc.supabase.co';
+  var CLOUD_KEY = window.GM_CLOUD_KEY || 'sb_publishable_noH86NX1wSd4t6--8_cMbA_AqYIMub1';
   var AUTH_KEY = 'gm_progress_auth';
   var Cloud = (function () {
-    var on = CLOUD_URL.indexOf('SUPABASE_PROJECT') < 0;
+    var on = !!CLOUD_URL;
     var A = null; try { A = JSON.parse(localStorage.getItem(AUTH_KEY)); } catch (e) {}
     var timer = null, busy = false, dirty = false;
     function storeAuth(a) { A = a; try { if (a) localStorage.setItem(AUTH_KEY, JSON.stringify(a)); else localStorage.removeItem(AUTH_KEY); } catch (e) {} }
@@ -89,9 +89,9 @@
     }
     function authErr(e) {
       var m = (e && e.message || '').toLowerCase();
-      if (m.indexOf('already') >= 0 || m.indexOf('registered') >= 0) return 'اسم المستخدم محجوز، اختار اسم تاني';
+      if (m === 'taken' || m.indexOf('already') >= 0 || m.indexOf('registered') >= 0) return 'اسم المستخدم محجوز، اختار اسم تاني';
       if (m.indexOf('invalid login') >= 0 || m.indexOf('invalid') >= 0 && m.indexOf('credential') >= 0) return 'اسم المستخدم أو كلمة المرور غلط';
-      if (m.indexOf('password') >= 0) return 'كلمة المرور لازم تكون 6 أحرف أو أكتر';
+      if (m.indexOf('password') >= 0 || m === 'weak_password') return 'كلمة المرور لازم تكون 6 أحرف أو أكتر';
       if (e && e.status === 429) return 'محاولات كتير، جرّب بعد شوي';
       if (e instanceof TypeError || !navigator.onLine) return 'ما في إنترنت. اتصل وجرّب مرة تانية';
       return 'صار خطأ، جرّب مرة تانية';
@@ -108,10 +108,10 @@
       },
       signup: function (u, pw) {
         u = cleanUser(u);
-        return req('/auth/v1/signup', { method: 'POST', body: { email: emailOf(u), password: pw, data: { username: u } } }).then(function (j) {
-          if (!j || !j.access_token) throw new Error('confirm');
-          return afterLogin(j, u);
-        });
+        // the 'signup' edge function creates the account already confirmed (no emails), then we log in
+        return req('/functions/v1/signup', { method: 'POST', body: { username: u, password: pw } })
+          .then(function () { return req('/auth/v1/token?grant_type=password', { method: 'POST', body: { email: emailOf(u), password: pw } }); })
+          .then(function (j) { return afterLogin(j, u); });
       },
       // on app open: bring down anything newer from the server, then upload what is waiting
       sync: function () {
